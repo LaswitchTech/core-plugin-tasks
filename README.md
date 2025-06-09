@@ -10,7 +10,7 @@
 ## Description
 **Author(s)**: [LaswitchTech](support@laswitchtech.com)
 
-LaswitchTech - Core Framework extension.
+LaswitchTech - Core Framework extension. This extension provides a task management system for the Core Framework. It allows users to create, manage, and track tasks within their applications.
 
 ## License
 This software is distributed under the [GPLv3](LICENSE) license.
