@@ -112,6 +112,15 @@ class TasksEndpoint extends Endpoint {
             $message['data'] = [
                 "record" => $task,
             ];
+
+            // // Check if the Inventory is accessible
+            // if(!is_null($this->Model->Inventory)){
+            //     if(!is_null($lead['client']['id']))
+            //     $message['data']['dependencies']['inventory'] = $this->Model->Inventory->fetchAll([
+            //         ["key" => "targetTable", "operator" => "=", "value" => "clients"],
+            //         ["key" => "targetId", "operator" => "=", "value" => $lead['client']['id']],
+            //     ]);
+            // }
         }
         return $message;
     }
