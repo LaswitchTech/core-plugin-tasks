@@ -225,7 +225,7 @@ class TasksModel extends Model {
      * @param array $conditions
      * @return int
      */
-    public function count(array $conditions = []): int
+    public function count(array $conditions = [], string $conjunction = 'AND'): int
     {
         // Create the Query
         $Query = $this->Database->query()
@@ -236,7 +236,7 @@ class TasksModel extends Model {
 
         // Add the Conditions
         foreach($conditions as $condition){
-            $Query->where($condition["key"], $condition["value"], $condition["operator"]);
+            $Query->where($condition["key"], $condition["value"], $condition["operator"], $conjunction);
         }
 
         // Execute the Query
@@ -252,11 +252,11 @@ class TasksModel extends Model {
      * @param array $conditions
      * @return array
      */
-    public function fetchAll(array $conditions = []): array
+    public function fetchAll(array $conditions = [], string $conjunction = 'AND'): array
     {
         // Create the Query
         $Query = $this->Database->query()
-            ->table('tasks')
+            ->table($this->table)
             ->select('*')
             ->join('owner', 'users', 'username')
             ->join('assignedTo', 'users', 'id')
@@ -273,7 +273,7 @@ class TasksModel extends Model {
 
             // Add the Conditions
             foreach($conditions as $condition){
-                $Query->where($condition["key"], $condition["value"], $condition["operator"]);
+                $Query->where($condition["key"], $condition["value"], $condition["operator"], $conjunction);
             }
         }
 
