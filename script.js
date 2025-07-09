@@ -1,10 +1,3 @@
-//
-//   Core Framework - Script file
-//
-//   @license    MIT (https://mit-license.org/)
-//   @author     Louis Ouellet <louis@laswitchtech.com>
-//
-
 // Unassign a Task
 const TaskUnassign = function(task, callback = null){
     builder.Component(
@@ -22,26 +15,46 @@ const TaskUnassign = function(task, callback = null){
             callback: {
                 submit: function(element,modal){
                     $.ajax({
-                        url: '/endpoint.php/tasks/unassign?id='+task.id,
-                        type: 'GET',dataType: 'json',
+                        url: '/api/tasks/update?id='+task.id,
+                        headers: {'X-CSRF-Authorization': CSRF_KEY},
+                        type: 'POST',dataType: 'json',
+                        data: {assignedTo: null},
                         success: function(response) {
 
-                            // Update Assigned User
-                            $('[data-type="avatar"][data-task="'+task.id+'"]').each(function(){
-                                var avatar = $(this);
-                                avatar.html(builder.Avatar.avatar(null));
-                            });
+                            const complete = function(){
 
-                            // Update the task
-                            task.assignedTo = null;
+                                // Update Assigned User
+                                $('[data-type="avatar"][data-task="'+task.id+'"]').each(function(){
+                                    var avatar = $(this);
+                                    avatar.html(builder.Avatar.avatar(null));
+                                });
 
-                            // Execute Callback
-                            if(typeof callback === "function"){
-                                callback(task, response);
+                                // Update the task
+                                task.assignedTo = null;
+
+                                // Execute Callback
+                                if(typeof callback === "function"){
+                                    callback(task, response);
+                                }
+
+                                // Hide Modal
+                                modal.hide();
                             }
 
-                            // Hide Modal
-                            modal.hide();
+                            // Check if the root of the task has an assignedTo field
+                            if(typeof task.root !== "undefined" && typeof task.root.target !== "undefined" && typeof task.root.target.assignedTo !== "undefined"){
+                                $.ajax({
+                                    url: '/api/'+task.root.targetTable+'/update?id='+task.root.targetId,
+                                    headers: {'X-CSRF-Authorization': CSRF_KEY},
+                                    type: 'POST',dataType: 'json',
+                                    data: {assignedTo: null},
+                                    success: function(response) {
+                                        complete();
+                                    }
+                                });
+                            } else {
+                                complete();
+                            }
                         }
                     });
                 },
@@ -100,7 +113,7 @@ const TaskArchive = function(task){
 
                         // AJAX Request
                         $.ajax({
-                            url: '/endpoint.php/'+task.targetTable+'/archive?id='+task.targetId,
+                            url: '/api/'+task.targetTable+'/archive?id='+task.targetId,
                             type: 'GET',dataType: 'json',
                             success: function(response) {
 
@@ -130,324 +143,325 @@ const TaskArchive = function(task){
     );
 };
 // Details of a Task
-const TaskDetails = function(task, element, callback = null){
+const TaskDetails = function(id, element, callback = null){
 
-    // Clear the details, notes and progress
-    element.html('');
-
-    // Create a Card for the task details
-    const Progress = builder.Component(
-        "card",
-        element,
-        {
-            class: {
-                component: "mb-3",
-                body: "p-0",
-            },
-            icon: "check-square",
-            title: builder.Locale.get("Progress"),
-        },
-        function(card,component){
-            ProcessTree(task, component.body, component.body);
-        },
-    );
-
-    // Create a Tabs for the task
-    const Tabs = builder.Component(
-        "tabs",
-        element,
-        {
-            class: {
-                navbar: 'nav-pills',
-            },
-        },
-        function(tabs,card){
-            card._component.body.removeClass('card-body');
-            tabs.add(
-                'details',
-                {
-                    icon: "info-circle",
-                    label: builder.Locale.get("Details"),
-                },
-                function(tab,nav){
-
-                    // Styling
-                    tab.addClass('px-4 py-3 position-relative');
-
-                    // Add a controls area
-                    let controls = $(document.createElement('div')).addClass('position-absolute btn-group top-0 end-0 p-3').appendTo(tab);
-                    controls.archive = $(document.createElement('button')).attr({
-                        "class": "btn btn-sm btn-dark",
-                    }).html('<i class="bi bi-archive me-2"></i>'+builder.Locale.get("Archive")).appendTo(controls);
-                    controls.archive.click(function(){
-                        TaskArchive(task);
-                    });
-
-                    // Create a grid for the details
-                    let row = $(document.createElement('div')).addClass('row g-3').appendTo(tab);
-
-                    // Update the details
-                    for(const [key, value] of Object.entries(task)){
-                        switch(key){
-                            case 'label':
-                                let cellLabel = $(document.createElement('div')).addClass('col-12 d-flex align-items-center').html('<h4 class="m-0">'+builder.Parser.parse(value)+'</h4>').appendTo(row);
-                                cellLabel.find('[data-vcard]').off().click(function(){
-                                    vCardModal($(this).attr('data-vcard'),$(this).attr('data-vcard-name'));
-                                });
-                                break;
-                            case 'progress':
-                                var cellProgress = $(document.createElement('div')).addClass('col-6').appendTo(row);
-                                cellProgress.header = $(document.createElement('h4')).addClass('w-100 m-0').appendTo(cellProgress);
-                                if(value){
-                                    cellProgress.badge = $(document.createElement('span')).addClass('badge w-100 text-bg-'+task.process[task.progress].color).text(builder.Locale.get(task.process[task.progress].name)).appendTo(cellProgress.header);
-                                    cellProgress.icon = $(document.createElement('i')).addClass('me-1 bi bi-'+task.process[task.progress].icon).prependTo(cellProgress.badge);
-                                } else {
-                                    cellProgress.badge = $(document.createElement('span')).addClass('badge w-100 text-bg-success').text(builder.Locale.get('New')).appendTo(cellProgress.header);
-                                    cellProgress.icon = $(document.createElement('i')).addClass('me-1 bi bi-stars').prependTo(cellProgress.badge);
-                                }
-                                cellProgress.badge.attr({"data-type": "status", "data-task": task.id});
-                                break;
-                            case 'priority':
-                                let color = ['secondary','primary','warning','orange','danger'];
-                                let name = ['Low','Normal','High','Urgent','Critical'];
-                                let icon = ['exclamation-triangle','info-circle','exclamation-circle','exclamation-diamond','exclamation-square'];
-                                cellPriority = $(document.createElement('div')).addClass('col-6 cursor-pointer').appendTo(row);
-                                '<span class="badge w-100 text-bg-'+color[value]+'"><i class="me-1 bi bi-'+icon[value]+'"></i>'+builder.Locale.get(name[value])+'</span>'
-                                cellPriority.heading = $(document.createElement('h4')).attr({
-                                    "class": "w-100 m-0",
-                                }).appendTo(cellPriority);
-                                cellPriority.badge = $(document.createElement('span')).attr({
-                                    "class": "badge w-100 text-bg-"+color[value],
-                                    "data-type": "priority",
-                                    "data-task": task.id,
-                                }).html('<i class="me-1 bi bi-'+icon[value]+'"></i>'+builder.Locale.get(name[value])).appendTo(cellPriority.heading);
-                                cellPriority.click(function(){
-                                    TaskPriorityModal(task);
-                                });
-                                break;
-                            case 'assignedTo':
-                                let cellAssignedTo = $(document.createElement('div')).addClass('col-6 py-0').appendTo(row);
-                                cellAssignedTo.trigger = $(document.createElement('div')).addClass('px-3 py-2 rounded').attr('style','transition: all 300ms ease 0s;').appendTo(cellAssignedTo);
-                                cellAssignedTo.avatar = $(document.createElement('div')).attr({
-                                    "class": "d-flex align-items-center",
-                                    "data-type": 'avatar',
-                                    "data-task": task.id,
-                                }).appendTo(cellAssignedTo.trigger);
-                                cellAssignedTo.avatar.username = $(document.createElement('span')).attr({
-                                    "class": "my-1",
-                                    "data-bs-toggle": "tooltip",
-                                    "data-bs-placement": "top",
-                                    "title": task.assignedTo.username,
-                                    "data-bs-title": task.assignedTo.username,
-                                }).text(task.assignedTo.username).appendTo(cellAssignedTo.avatar);
-                                cellAssignedTo.avatar.avatar = $(document.createElement('img')).attr({
-                                    "class": "rounded-circle me-1",
-                                    "alt": task.assignedTo.username,
-                                    "style": "width: 48px; height: 48px;",
-                                    "src": "/avatar?username="+task.assignedTo.username,
-                                }).prependTo(cellAssignedTo.avatar);
-                                cellAssignedTo.trigger.hover(
-                                    function(){
-                                        cellAssignedTo.trigger.addClass('text-bg-secondary cursor-pointer');
-                                    },
-                                    function(){
-                                        cellAssignedTo.trigger.removeClass('text-bg-secondary cursor-pointer');
-                                    },
-                                );
-                                cellAssignedTo.trigger.click(function(){
-                                    TaskAssignModal(task);
-                                });
-                                break;
-                            case 'due':
-                                let cellDue = $(document.createElement('div')).addClass('col-6 py-0').appendTo(row);
-                                cellDue.trigger = $(document.createElement('div')).addClass('px-3 py-2 rounded').attr('style','transition: all 300ms ease 0s;').appendTo(cellDue);
-                                cellDue.flex = $(document.createElement('div')).addClass('d-flex justify-content-start align-items-center').appendTo(cellDue.trigger);
-                                cellDue.icon = $(document.createElement('div')).addClass('me-2 rounded-circle p-2 text-bg-primary d-flex justify-content-center align-items-center').css({"height":"48px","width":"48px"}).html('<i class="bi bi-calendar-event" style="font-size:1.25rem;"></i>').appendTo(cellDue.flex);
-                                cellDue.date = $(document.createElement('div')).html(moment(value).format('YYYY-MM-DD HH:mm')).appendTo(cellDue.flex);
-                                cellDue.trigger.hover(
-                                    function(){
-                                        cellDue.trigger.addClass('text-bg-secondary cursor-pointer');
-                                    },
-                                    function(){
-                                        cellDue.trigger.removeClass('text-bg-secondary cursor-pointer');
-                                    },
-                                );
-                                cellDue.trigger.click(function(){
-                                    builder.Component(
-                                        "modal",
-                                        null,
-                                        {
-                                            onEnter: true,
-                                            destroy:true,
-                                            icon: "calendar-event",
-                                            title: builder.Locale.get("Change Due Date"),
-                                            cancel: false,
-                                            submit: true,
-                                            size: "md",
-                                            callback: {
-                                                submit: function(element,modal){
-                                                    element.form.submit();
-                                                },
-                                            },
-                                        },
-                                        function(modal,component){
-                                            component.header.addClass('text-bg-warning');
-                                            component.footer.submit
-                                                .addClass('btn-success')
-                                                .removeClass('btn-link')
-                                                .attr('style','border-bottom-left-radius: var(--bs-modal-inner-border-radius) !important;border-bottom-right-radius: var(--bs-modal-inner-border-radius) !important;');
-                                            component.footer.submit.icon = $(document.createElement('i')).addClass('bi bi-save me-1').prependTo(component.footer.submit);
-                                            component.form = builder.Component(
-                                                "form",
-                                                component.body,
-                                                {
-                                                    callback:{
-                                                        val: function(values){
-                                                            values.due = values.date+" "+values.time;
-                                                            values[CSRF_KEY] = CSRF_TOKEN;
-                                                            delete values.date;
-                                                            delete values.time;
-                                                            return values;
-                                                        },
-                                                        submit: function(form){
-                                                            const values = form.val();
-                                                            $.ajax({
-                                                                url: '/endpoint.php/tasks/due?id='+task.id,
-                                                                type: 'POST',dataType: 'json',
-                                                                data: values,
-                                                                success: function(response) {
-                                                                    console.log(response);
-                                                                    CSRF_KEY = response.CSRF.key;
-                                                                    CSRF_TOKEN = response.CSRF.token;
-                                                                    cellDue.date.html(moment(values.due).format('YYYY-MM-DD HH:mm'));
-                                                                    modal.hide();
-                                                                }
-                                                            });
-                                                        },
-                                                    },
-                                                },
-                                                function(form,component){
-                                                    form.add(
-                                                        {
-                                                            class: { field: 'mb-3' },
-                                                            name: 'date',
-                                                            label: builder.Locale.get('Date'),
-                                                            icon: 'calendar',
-                                                            type: 'date',
-                                                            value: value ? value.split(' ')[0] : moment().format('YYYY-MM-DD'),
-                                                        },
-                                                    );
-                                                    form.add(
-                                                        {
-                                                            name: 'time',
-                                                            label: builder.Locale.get('Time'),
-                                                            icon: 'clock',
-                                                            type: 'time',
-                                                            value: value ? value.split(' ')[1] : moment().format('HH:mm'),
-                                                        },
-                                                    );
-                                                    modal.show();
-                                                },
-                                            );
-                                        },
-                                    );
-                                });
-                                break;
-                            case 'link':
-                                let cellLink = $(document.createElement('div')).addClass('col-12 py-0').appendTo(row);
-                                cellLink.trigger = $(document.createElement('div')).addClass('px-3 py-2 rounded').attr('style','transition: all 300ms ease 0s;').appendTo(cellLink);
-                                cellLink.flex = $(document.createElement('div')).addClass('d-flex justify-content-start align-items-center').appendTo(cellLink.trigger);
-                                cellLink.icon = $(document.createElement('div')).addClass('me-2 rounded-circle p-2 text-bg-info d-flex justify-content-center align-items-center').css({"height":"48px","width":"48px"}).html('<i class="bi bi-link-45deg" style="font-size:1.25rem;"></i>').appendTo(cellLink.flex);
-                                cellLink.label = $(document.createElement('div')).text(builder.Locale.get('Linked Object')).appendTo(cellLink.flex);
-                                cellLink.trigger.hover(
-                                    function(){
-                                        cellLink.trigger.addClass('text-bg-secondary cursor-pointer');
-                                    },
-                                    function(){
-                                        cellLink.trigger.removeClass('text-bg-secondary cursor-pointer');
-                                    },
-                                );
-                                cellLink.trigger.click(function(){
-                                    window.location.href = value;
-                                });
-                                break;
-                        }
-                    }
-                },
-            );
-            tabs.add(
-                'activities',
-                {
-                    icon: "activity",
-                    label: builder.Locale.get("Activity"),
-                },
-                function(tab,nav){
-                    tab.addClass('px-4 py-3');
-                    EventFeed(task.dependencies.events, tab);
-                },
-            );
-            tabs.add(
-                'notes',
-                {
-                    icon: "stickies",
-                    label: builder.Locale.get("Notes"),
-                },
-                function(tab,nav){
-                    var targetTable = task.target.targetTable ? task.target.targetTable : task.targetTable;
-                    var targetId = task.target.targetId ? task.target.targetId : task.targetId;
-                    NotesFeed(task.dependencies.notes, tab, targetTable, targetId);
-                },
-            );
-        },
-    );
-
-    // Execute Callback
-    if(typeof callback === "function"){
-        callback(Progress, Tabs);
-    }
-};
-// Task Modal
-const TaskModal = function(id){
+    // AJAX Request
     $.ajax({
-        url: '/endpoint.php/tasks/details?id='+id,
+        url: '/api/tasks/fetch?id='+id,
         type: 'GET',dataType: 'json',
         success: function(response) {
             console.log(response);
-            builder.Component(
-                "modal",
+
+            // Clear the details, notes and progress
+            element.html('');
+
+            // Create a Card for the task details
+            const Progress = builder.Component(
+                "card",
+                element,
                 {
-                    onEnter: true,
-                    destroy:true,
+                    class: {
+                        component: "mb-3",
+                        body: "p-0",
+                    },
                     icon: "check-square",
-                    title: builder.Locale.get("Task Details"),
-                    cancel: false,
-                    submit: false,
-                    size: "xl",
+                    title: builder.Locale.get("Progress"),
                 },
-                function(modal,component){
-
-                    // Styling
-                    component.header.addClass('text-bg-primary');
-                    component.body.addClass('p-0');
-                    component.footer.remove();
-
-                    // Setup the details
-                    TaskDetails(response.record, component.body, function(Progress, Tabs){
-
-                        // Styling
-                        Progress._component.removeClass('mb-3');
-                        Progress._component.card.addClass('bg-transparent rounded-0');
-                        Progress._component.tools.remove();
-                        Tabs._component._component.card.addClass('bg-transparent rounded-top-0');
-                        Tabs._component._component.tools.remove();
-
-                        // Open the modal
-                        modal.show();
-                    });
-                }
+                function(card,component){
+                    ProcessTree(response.record, component.body, component.body);
+                },
             );
+
+            // Create a Tabs for the task
+            const Tabs = builder.Component(
+                "tabs",
+                element,
+                {
+                    class: {
+                        navbar: 'nav-pills',
+                    },
+                },
+                function(tabs,card){
+                    card._component.body.removeClass('card-body');
+                    tabs.add(
+                        'details',
+                        {
+                            icon: "info-circle",
+                            label: builder.Locale.get("Details"),
+                        },
+                        function(tab,nav){
+
+                            // Styling
+                            tab.addClass('px-4 py-3 position-relative');
+
+                            // Add a controls area
+                            let controls = $(document.createElement('div')).addClass('position-absolute btn-group top-0 end-0 p-3').appendTo(tab);
+                            controls.archive = $(document.createElement('button')).attr({
+                                "class": "btn btn-sm btn-dark",
+                            }).html('<i class="bi bi-archive me-2"></i>'+builder.Locale.get("Archive")).appendTo(controls);
+                            controls.archive.click(function(){
+                                TaskArchive(response.record);
+                            });
+
+                            // Create a grid for the details
+                            let row = $(document.createElement('div')).addClass('row g-3').appendTo(tab);
+
+                            // Update the details
+                            for(const [key, value] of Object.entries(response.record)){
+                                switch(key){
+                                    case 'label':
+                                        let cellLabel = $(document.createElement('div')).addClass('col-12 d-flex align-items-center').html('<h4 class="m-0">'+builder.Parser.parse(value)+'</h4>').appendTo(row);
+                                        cellLabel.find('[data-vcard]').off().click(function(){
+                                            vCardModal($(this).attr('data-vcard'),$(this).attr('data-vcard-name'));
+                                        });
+                                        break;
+                                    case 'progress':
+                                        var cellProgress = $(document.createElement('div')).addClass('col-6').appendTo(row);
+                                        cellProgress.header = $(document.createElement('h4')).addClass('w-100 m-0').appendTo(cellProgress);
+                                        if(value){
+                                            cellProgress.badge = $(document.createElement('span')).addClass('badge w-100 text-bg-'+response.record.process[response.record.progress].color).text(builder.Locale.get(response.record.process[response.record.progress].name)).appendTo(cellProgress.header);
+                                            cellProgress.icon = $(document.createElement('i')).addClass('me-1 bi bi-'+response.record.process[response.record.progress].icon).prependTo(cellProgress.badge);
+                                        } else {
+                                            cellProgress.badge = $(document.createElement('span')).addClass('badge w-100 text-bg-success').text(builder.Locale.get('New')).appendTo(cellProgress.header);
+                                            cellProgress.icon = $(document.createElement('i')).addClass('me-1 bi bi-stars').prependTo(cellProgress.badge);
+                                        }
+                                        cellProgress.badge.attr({"data-type": "status", "data-task": response.record.id});
+                                        break;
+                                    case 'priority':
+                                        let color = ['secondary','primary','warning','orange','danger'];
+                                        let name = ['Low','Normal','High','Urgent','Critical'];
+                                        let icon = ['exclamation-triangle','info-circle','exclamation-circle','exclamation-diamond','exclamation-square'];
+                                        cellPriority = $(document.createElement('div')).addClass('col-6 cursor-pointer').appendTo(row);
+                                        '<span class="badge w-100 text-bg-'+color[value]+'"><i class="me-1 bi bi-'+icon[value]+'"></i>'+builder.Locale.get(name[value])+'</span>'
+                                        cellPriority.heading = $(document.createElement('h4')).attr({
+                                            "class": "w-100 m-0",
+                                        }).appendTo(cellPriority);
+                                        cellPriority.badge = $(document.createElement('span')).attr({
+                                            "class": "badge w-100 text-bg-"+color[value],
+                                            "data-type": "priority",
+                                            "data-task": response.record.id,
+                                        }).html('<i class="me-1 bi bi-'+icon[value]+'"></i>'+builder.Locale.get(name[value])).appendTo(cellPriority.heading);
+                                        cellPriority.click(function(){
+                                            TaskPriorityModal(response.record);
+                                        });
+                                        break;
+                                    case 'assignedTo':
+                                        let cellAssignedTo = $(document.createElement('div')).addClass('col-6 py-0').appendTo(row);
+                                        cellAssignedTo.trigger = $(document.createElement('div')).addClass('px-3 py-2 rounded').attr('style','transition: all 300ms ease 0s;').appendTo(cellAssignedTo);
+                                        cellAssignedTo.avatar = $(document.createElement('div')).attr({
+                                            "class": "d-flex align-items-center",
+                                            "data-type": 'avatar',
+                                            "data-task": response.record.id,
+                                        }).appendTo(cellAssignedTo.trigger);
+                                        cellAssignedTo.avatar.username = $(document.createElement('span')).attr({
+                                            "class": "my-1",
+                                            "data-bs-toggle": "tooltip",
+                                            "data-bs-placement": "top",
+                                            "title": response.record.assignedTo.username,
+                                            "data-bs-title": response.record.assignedTo.username,
+                                        }).text(response.record.assignedTo.username).appendTo(cellAssignedTo.avatar);
+                                        cellAssignedTo.avatar.avatar = $(document.createElement('img')).attr({
+                                            "class": "rounded-circle me-1",
+                                            "alt": response.record.assignedTo.username,
+                                            "style": "width: 48px; height: 48px;",
+                                            "src": "/avatar?username="+response.record.assignedTo.username,
+                                        }).prependTo(cellAssignedTo.avatar);
+                                        cellAssignedTo.trigger.hover(
+                                            function(){
+                                                cellAssignedTo.trigger.addClass('text-bg-secondary cursor-pointer');
+                                            },
+                                            function(){
+                                                cellAssignedTo.trigger.removeClass('text-bg-secondary cursor-pointer');
+                                            },
+                                        );
+                                        cellAssignedTo.trigger.click(function(){
+                                            TaskAssignModal(response.record);
+                                        });
+                                        break;
+                                    case 'due':
+                                        let cellDue = $(document.createElement('div')).addClass('col-6 py-0').appendTo(row);
+                                        cellDue.trigger = $(document.createElement('div')).addClass('px-3 py-2 rounded').attr('style','transition: all 300ms ease 0s;').appendTo(cellDue);
+                                        cellDue.flex = $(document.createElement('div')).addClass('d-flex justify-content-start align-items-center').appendTo(cellDue.trigger);
+                                        cellDue.icon = $(document.createElement('div')).addClass('me-2 rounded-circle p-2 text-bg-primary d-flex justify-content-center align-items-center').css({"height":"48px","width":"48px"}).html('<i class="bi bi-calendar-event" style="font-size:1.25rem;"></i>').appendTo(cellDue.flex);
+                                        cellDue.date = $(document.createElement('div')).html(moment(value).format('YYYY-MM-DD HH:mm')).appendTo(cellDue.flex);
+                                        cellDue.trigger.hover(
+                                            function(){
+                                                cellDue.trigger.addClass('text-bg-secondary cursor-pointer');
+                                            },
+                                            function(){
+                                                cellDue.trigger.removeClass('text-bg-secondary cursor-pointer');
+                                            },
+                                        );
+                                        cellDue.trigger.click(function(){
+                                            builder.Component(
+                                                "modal",
+                                                null,
+                                                {
+                                                    onEnter: true,
+                                                    destroy:true,
+                                                    icon: "calendar-event",
+                                                    title: builder.Locale.get("Change Due Date"),
+                                                    cancel: false,
+                                                    submit: true,
+                                                    size: "md",
+                                                    callback: {
+                                                        submit: function(element,modal){
+                                                            element.form.submit();
+                                                        },
+                                                    },
+                                                },
+                                                function(modal,component){
+                                                    component.header.addClass('text-bg-warning');
+                                                    component.footer.submit
+                                                        .addClass('btn-success')
+                                                        .removeClass('btn-link')
+                                                        .attr('style','border-bottom-left-radius: var(--bs-modal-inner-border-radius) !important;border-bottom-right-radius: var(--bs-modal-inner-border-radius) !important;');
+                                                    component.footer.submit.icon = $(document.createElement('i')).addClass('bi bi-save me-1').prependTo(component.footer.submit);
+                                                    component.form = builder.Component(
+                                                        "form",
+                                                        component.body,
+                                                        {
+                                                            callback:{
+                                                                val: function(values){
+                                                                    values.due = values.date+" "+values.time;
+                                                                    delete values.date;
+                                                                    delete values.time;
+                                                                    return values;
+                                                                },
+                                                                submit: function(form){
+                                                                    const values = form.val();
+                                                                    $.ajax({
+                                                                        url: '/api/tasks/due?id='+response.record.id,
+                                                                        headers: {'X-CSRF-Authorization': CSRF_KEY},
+                                                                        type: 'POST',dataType: 'json',
+                                                                        data: values,
+                                                                        success: function(response) {
+                                                                            cellDue.date.html(moment(values.due).format('YYYY-MM-DD HH:mm'));
+                                                                            modal.hide();
+                                                                        }
+                                                                    });
+                                                                },
+                                                            },
+                                                        },
+                                                        function(form,component){
+                                                            form.add(
+                                                                {
+                                                                    class: { field: 'mb-3' },
+                                                                    name: 'date',
+                                                                    label: builder.Locale.get('Date'),
+                                                                    icon: 'calendar',
+                                                                    type: 'date',
+                                                                    value: value ? value.split(' ')[0] : moment().format('YYYY-MM-DD'),
+                                                                },
+                                                            );
+                                                            form.add(
+                                                                {
+                                                                    name: 'time',
+                                                                    label: builder.Locale.get('Time'),
+                                                                    icon: 'clock',
+                                                                    type: 'time',
+                                                                    value: value ? value.split(' ')[1] : moment().format('HH:mm'),
+                                                                },
+                                                            );
+                                                            modal.show();
+                                                        },
+                                                    );
+                                                },
+                                            );
+                                        });
+                                        break;
+                                    case 'link':
+                                        let cellLink = $(document.createElement('div')).addClass('col-12 py-0').appendTo(row);
+                                        cellLink.trigger = $(document.createElement('div')).addClass('px-3 py-2 rounded').attr('style','transition: all 300ms ease 0s;').appendTo(cellLink);
+                                        cellLink.flex = $(document.createElement('div')).addClass('d-flex justify-content-start align-items-center').appendTo(cellLink.trigger);
+                                        cellLink.icon = $(document.createElement('div')).addClass('me-2 rounded-circle p-2 text-bg-info d-flex justify-content-center align-items-center').css({"height":"48px","width":"48px"}).html('<i class="bi bi-link-45deg" style="font-size:1.25rem;"></i>').appendTo(cellLink.flex);
+                                        cellLink.label = $(document.createElement('div')).text(builder.Locale.get('Linked Object')).appendTo(cellLink.flex);
+                                        cellLink.trigger.hover(
+                                            function(){
+                                                cellLink.trigger.addClass('text-bg-secondary cursor-pointer');
+                                            },
+                                            function(){
+                                                cellLink.trigger.removeClass('text-bg-secondary cursor-pointer');
+                                            },
+                                        );
+                                        cellLink.trigger.click(function(){
+                                            window.location.href = value;
+                                        });
+                                        break;
+                                }
+                            }
+                        },
+                    );
+                    tabs.add(
+                        'activities',
+                        {
+                            icon: "activity",
+                            label: builder.Locale.get("Activity"),
+                        },
+                        function(tab,nav){
+                            tab.addClass('px-4 py-3');
+                            EventFeed(response.dependencies.event, tab);
+                        },
+                    );
+                    tabs.add(
+                        'notes',
+                        {
+                            icon: "stickies",
+                            label: builder.Locale.get("Notes"),
+                        },
+                        function(tab,nav){
+                            var targetTable = response.record.target.targetTable ? response.record.target.targetTable : response.record.targetTable;
+                            var targetId = response.record.target.targetId ? response.record.target.targetId : response.record.targetId;
+                            NotesFeed(response.dependencies.notes, tab, targetTable, targetId);
+                        },
+                    );
+                },
+            );
+
+            // Execute Callback
+            if(typeof callback === "function"){
+                callback(Progress, Tabs);
+            }
         }
     });
+};
+// Task Modal
+const TaskModal = function(id){
+
+    // Create a modal for the task details
+    builder.Component(
+        "modal",
+        {
+            onEnter: true,
+            destroy:true,
+            icon: "check-square",
+            title: builder.Locale.get("Task Details"),
+            cancel: false,
+            submit: false,
+            size: "xl",
+        },
+        function(modal,component){
+
+            // Styling
+            component.header.addClass('text-bg-primary');
+            component.body.addClass('p-0');
+            component.footer.remove();
+
+            // Setup the details
+            TaskDetails(id, component.body, function(Progress, Tabs){
+
+                // Styling
+                Progress._component.removeClass('mb-3');
+                Progress._component.card.addClass('bg-transparent rounded-0');
+                Progress._component.tools.remove();
+                Tabs._component._component.card.addClass('bg-transparent rounded-top-0');
+                Tabs._component._component.tools.remove();
+
+                // Open the modal
+                modal.show();
+            });
+        }
+    );
 };
 // Set Task Priority
 const TaskPriorityModal = function(task){
@@ -485,21 +499,14 @@ const TaskPriorityModal = function(task){
                 component.body,
                 {
                     callback:{
-                        val: function(values){
-                            values[CSRF_KEY] = CSRF_TOKEN;
-                            return values;
-                        },
                         submit: function(form){
                             const values = form.val();
                             $.ajax({
-                                url: '/endpoint.php/tasks/priority?id='+task.id,
+                                url: '/api/tasks/update?id='+task.id,
+                                headers: {'X-CSRF-Authorization': CSRF_KEY},
                                 type: 'POST',dataType: 'json',
                                 data: values,
                                 success: function(response) {
-
-                                    // Update CSRF Token
-                                    CSRF_KEY = response.CSRF.key;
-                                    CSRF_TOKEN = response.CSRF.token;
 
                                     // Update Priority Badges
                                     $('[data-type="priority"][data-task="'+task.id+'"]').each(function(){
@@ -549,7 +556,7 @@ const TaskPriorityModal = function(task){
 // Set Task Assigned User
 const TaskAssignModal = function(task, callback = null){
     $.ajax({
-        url: '/endpoint.php/tasks/details?id=' + task.id,
+        url: '/api/tasks/fetch?id=' + task.id,
         type: 'GET',dataType: 'json',
         success: function(response) {
             if(response.record.assignedTo.username){
@@ -725,15 +732,28 @@ const TaskTable = function(container, tasks, assignedTo = false, callback = null
 // Assign a Task
 function process_function_TaskAssign(task, value, callback = null){
 
+    // Initialize the should assign variable
+    var shouldAssign = true;
+
     // Check if the task is already assigned
-    if(task.assignedTo === null || task.assignedTo.id === null){
+    if(task.assignedTo.id !== null){
+        shouldAssign = false;
+    }
+
+    // Check if the task as a root and if the root has an assignedTo field
+    if(typeof task.root !== "undefined" && typeof task.root.target !== "undefined" && (typeof task.root.target.assignedTo === "undefined"  || task.root.target.assignedTo.id === null)){
+        shouldAssign = false;
+    }
+
+    // Check if we should assign the task
+    if(shouldAssign){
 
         // AJAX Request
         $.ajax({
-            url: '/endpoint.php/auth/colleagues',
+            url: '/api/auth/users',
             type: 'GET',dataType: 'json',
             success: function(response) {
-                var members = response;
+                var members = response.records;
                 var options = [];
                 for(const [id, member] of Object.entries(members)){
                     options.push({id: id, text: member.username});
@@ -769,38 +789,49 @@ function process_function_TaskAssign(task, value, callback = null){
                             component.body,
                             {
                                 callback:{
-                                    val: function(values){
-                                        values[CSRF_KEY] = CSRF_TOKEN;
-                                        return values;
-                                    },
                                     submit: function(form){
                                         const values = form.val();
                                         $.ajax({
-                                            url: '/endpoint.php/tasks/assign?id='+task.id,
+                                            url: '/api/tasks/update?id='+task.id,
+                                            headers: {'X-CSRF-Authorization': CSRF_KEY},
                                             type: 'POST',dataType: 'json',
                                             data: values,
                                             success: function(response) {
 
-                                                // Update CSRF Token
-                                                CSRF_KEY = response.CSRF.key;
-                                                CSRF_TOKEN = response.CSRF.token;
+                                                const complete = function(){
 
-                                                // Update Assigned User
-                                                $('[data-type="avatar"][data-task="'+task.id+'"]').each(function(){
-                                                    var avatar = $(this);
-                                                    avatar.html(builder.Avatar.avatar(members[values.assignedTo].username));
-                                                });
+                                                    // Update Assigned User
+                                                    $('[data-type="avatar"][data-task="'+task.id+'"]').each(function(){
+                                                        var avatar = $(this);
+                                                        avatar.html(builder.Avatar.avatar(members[values.assignedTo].username));
+                                                    });
 
-                                                // Update the task
-                                                task.assignedTo = members[values.assignedTo];
+                                                    // Update the task
+                                                    task.assignedTo = members[values.assignedTo];
 
-                                                // Execute Callback
-                                                if(typeof callback === "function"){
-                                                    callback(task, response);
+                                                    // Execute Callback
+                                                    if(typeof callback === "function"){
+                                                        callback(task, response);
+                                                    }
+
+                                                    // Hide Modal
+                                                    modal.hide();
                                                 }
 
-                                                // Hide Modal
-                                                modal.hide();
+                                                // Check if the root of the task has an assignedTo field
+                                                if(typeof task.root !== "undefined" && typeof task.root.target !== "undefined" && typeof task.root.target.assignedTo !== "undefined"){
+                                                    $.ajax({
+                                                        url: '/api/'+task.root.targetTable+'/update?id='+task.root.targetId,
+                                                        headers: {'X-CSRF-Authorization': CSRF_KEY},
+                                                        type: 'POST',dataType: 'json',
+                                                        data: values,
+                                                        success: function(response) {
+                                                            complete();
+                                                        }
+                                                    });
+                                                } else {
+                                                    complete();
+                                                }
                                             }
                                         });
                                     },
@@ -844,10 +875,22 @@ function process_meta_TaskAssign(key = null){
 
 // Activate a task
 function process_function_TaskActivate(task, value, callback = null){
+
+    // Check if the task is already active
+    if(task.isActive){
+        // Execute Callback
+        if(typeof callback === "function"){
+            callback(task, null);
+        }
+        return;
+    }
+
     // AJAX Request
     $.ajax({
-        url: '/endpoint.php/tasks/activate?id='+task.id,
-        type: 'GET',dataType: 'json',
+        url: '/api/tasks/update?id='+task.id,
+        headers: {'X-CSRF-Authorization': CSRF_KEY},
+        type: 'POST',dataType: 'json',
+        data: {isActive: 1},
         success: function(response) {
 
             // Execute Callback
@@ -868,10 +911,22 @@ function process_meta_TaskActivate(key = null){
 
 // Deactivate a task
 function process_function_TaskDeactivate(task, value, callback = null){
+
+    // Check if the task is already inactive
+    if(task.isActive <= 0){
+        // Execute Callback
+        if(typeof callback === "function"){
+            callback(task, null);
+        }
+        return;
+    }
+
     // AJAX Request
     $.ajax({
-        url: '/endpoint.php/tasks/deactivate?id='+task.id,
-        type: 'GET',dataType: 'json',
+        url: '/api/tasks/update?id='+task.id,
+        headers: {'X-CSRF-Authorization': CSRF_KEY},
+        type: 'POST',dataType: 'json',
+        data: {isActive: 0},
         success: function(response) {
 
             // Execute Callback
@@ -894,7 +949,7 @@ function process_meta_TaskDeactivate(key = null){
 function dashboard_widget_tableTasks(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/index',
+        url: '/api/tasks/fetchAll',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -935,7 +990,7 @@ function dashboard_meta_tableTasks(key = null){
 function dashboard_widget_tableTasksCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/index',
+        url: '/api/tasks/fetchAll',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -985,7 +1040,7 @@ function dashboard_meta_tableTasksCategorized(key = null){
 function dashboard_widget_tableDailyTasks(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/index',
+        url: '/api/tasks/fetchAll',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1027,7 +1082,7 @@ function dashboard_meta_tableDailyTasks(key = null){
 function dashboard_widget_tableDailyTasksCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/index',
+        url: '/api/tasks/fetchAll',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1078,7 +1133,7 @@ function dashboard_meta_tableDailyTasksCategorized(key = null){
 function dashboard_widget_tableMyTasks(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/index',
+        url: '/api/tasks/fetchAll',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1120,7 +1175,7 @@ function dashboard_meta_tableMyTasks(key = null){
 function dashboard_widget_tableMyTasksCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/index',
+        url: '/api/tasks/fetchAll',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1171,7 +1226,7 @@ function dashboard_meta_tableMyTasksCategorized(key = null){
 function dashboard_widget_tableMyDailyTasks(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/index',
+        url: '/api/tasks/fetchAll',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1214,7 +1269,7 @@ function dashboard_meta_tableMyDailyTasks(key = null){
 function dashboard_widget_tableMyDailyTasksCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/index',
+        url: '/api/tasks/fetchAll',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1266,7 +1321,7 @@ function dashboard_meta_tableMyDailyTasksCategorized(key = null){
 function dashboard_widget_countTasks(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1287,7 +1342,7 @@ function dashboard_widget_countTasks(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("Tasks")).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1307,7 +1362,7 @@ function dashboard_meta_countTasks(key = null){
 function dashboard_widget_countTasksCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1329,7 +1384,7 @@ function dashboard_widget_countTasksCategorized(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get(value)).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1357,7 +1412,7 @@ function dashboard_meta_countTasksCategorized(key = null){
 function dashboard_widget_countDailyTasks(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1379,7 +1434,7 @@ function dashboard_widget_countDailyTasks(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("Today's Tasks")).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1399,7 +1454,7 @@ function dashboard_meta_countDailyTasks(key = null){
 function dashboard_widget_countDailyTasksCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1422,7 +1477,7 @@ function dashboard_widget_countDailyTasksCategorized(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("Today's "+value)).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1450,7 +1505,7 @@ function dashboard_meta_countDailyTasksCategorized(key = null){
 function dashboard_widget_countMissedTasks(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1472,7 +1527,7 @@ function dashboard_widget_countMissedTasks(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("Missed Tasks")).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1492,7 +1547,7 @@ function dashboard_meta_countMissedTasks(key = null){
 function dashboard_widget_countMissedTasksCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1515,7 +1570,7 @@ function dashboard_widget_countMissedTasksCategorized(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("Missed "+value)).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1543,7 +1598,7 @@ function dashboard_meta_countMissedTasksCategorized(key = null){
 function dashboard_widget_countCompletedTasks(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1564,7 +1619,7 @@ function dashboard_widget_countCompletedTasks(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("Completed Tasks")).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1584,7 +1639,7 @@ function dashboard_meta_countCompletedTasks(key = null){
 function dashboard_widget_countCompletedTasksCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1606,7 +1661,7 @@ function dashboard_widget_countCompletedTasksCategorized(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("Completed "+value)).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1634,7 +1689,7 @@ function dashboard_meta_countCompletedTasksCategorized(key = null){
 function dashboard_widget_countCompletedTasksToday(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1656,7 +1711,7 @@ function dashboard_widget_countCompletedTasksToday(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("Today's Completed Tasks")).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1676,7 +1731,7 @@ function dashboard_meta_countCompletedTasksToday(key = null){
 function dashboard_widget_countCompletedTasksTodayCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1699,7 +1754,7 @@ function dashboard_widget_countCompletedTasksTodayCategorized(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("Today's Completed "+value)).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1727,7 +1782,7 @@ function dashboard_meta_countCompletedTasksTodayCategorized(key = null){
 function dashboard_widget_countMyTasks(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1749,7 +1804,7 @@ function dashboard_widget_countMyTasks(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("My Tasks")).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1769,7 +1824,7 @@ function dashboard_meta_countMyTasks(key = null){
 function dashboard_widget_countMyTasksCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1792,7 +1847,7 @@ function dashboard_widget_countMyTasksCategorized(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("My "+value)).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1820,7 +1875,7 @@ function dashboard_meta_countMyTasksCategorized(key = null){
 function dashboard_widget_countMyDailyTasks(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1843,7 +1898,7 @@ function dashboard_widget_countMyDailyTasks(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("My Tasks Today")).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1863,7 +1918,7 @@ function dashboard_meta_countMyDailyTasks(key = null){
 function dashboard_widget_countMyDailyTasksCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1887,7 +1942,7 @@ function dashboard_widget_countMyDailyTasksCategorized(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get("My "+value+" Today")).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1915,7 +1970,7 @@ function dashboard_meta_countMyDailyTasksCategorized(key = null){
 function dashboard_widget_countMyMissedTasks(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1938,7 +1993,7 @@ function dashboard_widget_countMyMissedTasks(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get('My Missed Tasks')).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -1958,7 +2013,7 @@ function dashboard_meta_countMyMissedTasks(key = null){
 function dashboard_widget_countMyMissedTasksCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -1982,7 +2037,7 @@ function dashboard_widget_countMyMissedTasksCategorized(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get('My Missed '+value)).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -2010,7 +2065,7 @@ function dashboard_meta_countMyMissedTasksCategorized(key = null){
 function dashboard_widget_countMyCompletedTasks(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -2032,7 +2087,7 @@ function dashboard_widget_countMyCompletedTasks(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get('My Completed Tasks')).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -2052,7 +2107,7 @@ function dashboard_meta_countMyCompletedTasks(key = null){
 function dashboard_widget_countMyCompletedTasksCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -2075,7 +2130,7 @@ function dashboard_widget_countMyCompletedTasksCategorized(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get('My Completed '+value)).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -2103,7 +2158,7 @@ function dashboard_meta_countMyCompletedTasksCategorized(key = null){
 function dashboard_widget_countMyCompletedTasksToday(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -2126,7 +2181,7 @@ function dashboard_widget_countMyCompletedTasksToday(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get('My Completed Tasks Today')).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
@@ -2146,7 +2201,7 @@ function dashboard_meta_countMyCompletedTasksToday(key = null){
 function dashboard_widget_countMyCompletedTasksTodayCategorized(value = null){
     var container = $(document.createElement('div'));
     $.ajax({
-        url: '/endpoint.php/tasks/count',
+        url: '/api/tasks/count',
         headers: {'X-CSRF-Authorization': CSRF_KEY},
         type: 'POST',dataType: 'json',
         data: {
@@ -2170,7 +2225,7 @@ function dashboard_widget_countMyCompletedTasksTodayCategorized(value = null){
 
                     // Set Content
                     component.label = $(document.createElement("h5")).addClass("m-0").text(builder.Locale.get('My Completed '+value+' Today')).appendTo(component.content);
-                    component.count = $(document.createElement("p")).addClass("m-0").text(response).appendTo(component.content);
+                    component.count = $(document.createElement("p")).addClass("m-0").text(response.count).appendTo(component.content);
                 },
             );
         },
