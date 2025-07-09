@@ -1,14 +1,8 @@
-<!--
-  Core Framework - View File
-
-  @license    MIT (https://mit-license.org/)
-  @author     Louis Ouellet <louis@laswitchtech.com>
--->
 <div class="col-12" id="layout"></div>
 <script>
     $(document).ready(function(){
         $.ajax({
-            url: '/endpoint.php/tasks/index',
+            url: '/api/tasks/fetchAll',
             headers: {'X-CSRF-Authorization': CSRF_KEY},
             type: 'POST',dataType: 'json',
             data: {
@@ -62,7 +56,7 @@
                                 }
                             },
                             function(accordion,component){
-                                for(const [row, category] of Object.entries(response.categories)){
+                                for(const [row, category] of Object.entries(response.dependencies.categories)){
                                     accordion.add(
                                         {
                                             icon: category.icon,
@@ -183,21 +177,12 @@
                                                                             }, 300);
                                                                         }
 
-                                                                        // AJAX call to retrieve the task details
-                                                                        $.ajax({
-                                                                            url: '/endpoint.php/tasks/details?id=' + task.id,
-                                                                            type: 'GET',dataType: 'json',
-                                                                            success: function(response) {
-                                                                                console.log(response);
+                                                                        // Update the active item
+                                                                        $('li.list-group-item').removeClass('text-bg-primary');
+                                                                        item.addClass('text-bg-primary');
 
-                                                                                // Update the active item
-                                                                                $('li.list-group-item').removeClass('text-bg-primary');
-                                                                                item.addClass('text-bg-primary');
-
-                                                                                // Setup the details
-                                                                                TaskDetails(response.record, layout.details, function(){});
-                                                                            }
-                                                                        });
+                                                                        // Setup the details
+                                                                        TaskDetails(task.id, layout.details, function(){});
                                                                     });
                                                                 },
                                                             );

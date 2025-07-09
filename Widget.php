@@ -1,10 +1,3 @@
-<!--
-  Core Framework - Widget File
-
-  @license    MIT (https://mit-license.org/)
-  @author     Louis Ouellet <louis@laswitchtech.com>
--->
-
 <!-- ======= Task ======= -->
 <?php if($this->Auth->isAuthenticated()): ?>
     <li class="nav-item">
@@ -65,7 +58,7 @@
 
                 // Ajax Request
                 $.ajax({
-                    url: '/endpoint.php/tasks/index',
+                    url: '/api/tasks/fetchAll',
                     headers: {'X-CSRF-Authorization': CSRF_KEY},
                     type: 'POST',dataType: 'json',
                     data: {
@@ -78,7 +71,7 @@
                     success: function(response) {
 
                         // Load the Categories
-                        for(const [row, category] of Object.entries(response.categories)){
+                        for(const [row, category] of Object.entries(response.dependencies.categories)){
 
                             // Check if the category has already been loaded
                             if(typeof categories[category.name] === 'undefined' && category.isShown){
