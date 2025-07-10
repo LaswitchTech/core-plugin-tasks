@@ -740,8 +740,8 @@ function process_function_TaskAssign(task, value, callback = null){
         shouldAssign = false;
     }
 
-    // Check if the task as a root and if the root has an assignedTo field
-    if(typeof task.root !== "undefined" && typeof task.root.target !== "undefined" && (typeof task.root.target.assignedTo === "undefined"  || task.root.target.assignedTo.id === null)){
+    // Check if the task as a root and if the root is assigned.
+    if(typeof task.root !== "undefined" && typeof task.root.target !== "undefined" && typeof task.root.target.assignedTo !== "undefined" && task.root.target.assignedTo.id !== null){
         shouldAssign = false;
     }
 
