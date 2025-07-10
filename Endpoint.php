@@ -397,11 +397,11 @@ class TasksEndpoint extends BaseEndpoint {
         $message = ["status" => 200, "message" => "OK", "data" => []];
 
         // Retrieve the tasks's category
-        $category = $this->Request->getParams('REQUEST','category');
+        $id = $this->Request->getParams('REQUEST','id');
 
         // Check if the parameter exists
-        if(empty($category) || is_null($category)){
-            $message = ["status" => 400, "message" => "Bad Request", "data" => "The 'category' parameter is required."];
+        if(empty($id) || is_null($id)){
+            $message = ["status" => 400, "message" => "Bad Request", "data" => "The 'id' parameter is required."];
         }
 
         // Check if the task is accessible
@@ -411,14 +411,15 @@ class TasksEndpoint extends BaseEndpoint {
             if($this->Request->getMethod() == "GET"){
 
                 // Retrieve the task process
-                $process = $this->Model->Process->get($category);
+                $process = $this->Model->Process->fetch($id);
 
                 // Check if the process exists
                 if(!empty($process)){
 
                     // Retrieve the incomplete tasks of the specified category
                     $tasks = $this->Model->Tasks->fetchAll([
-                        ['key' => 'category','operator' => '=','value' => $category],
+                        ['key' => 'category','operator' => '=','value' => $process['category']],
+                        ['key' => 'targetTable','operator' => '=','value' => $process['targetTable']],
                         ['key' => 'isCompleted','operator' => '<>','value' => 1],
                     ]);
 
