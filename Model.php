@@ -143,6 +143,14 @@ class TasksModel extends BaseModel {
                         // String/null values
                         $value[$stepKey]['tasks'][$taskKey]['onComplete'] = $task['onComplete'] ? trim($task['onComplete']) : null;
                         $value[$stepKey]['tasks'][$taskKey]['value'] = $task['value'] ? trim($task['value']) : null;
+
+                        // Check if the task is completed and if it is the last task in the last step
+                        if($value[$stepKey]['tasks'][$taskKey]['isCompleted'] && count($value) === $stepKey && count($step['tasks']) === $taskKey){
+
+                            // Set task as completed
+                            $data['isCompleted'] = $value[$stepKey]['tasks'][$taskKey]['isCompleted'];
+                            $data['completedOn'] = $value[$stepKey]['tasks'][$taskKey]['onComplete'];
+                        }
                     }
                 }
             }
