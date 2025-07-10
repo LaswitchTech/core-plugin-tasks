@@ -113,12 +113,20 @@ const TaskArchive = function(task){
 
                         // AJAX Request
                         $.ajax({
-                            url: '/api/'+task.targetTable+'/archive?id='+task.targetId,
+                            url: '/api/tasks/archive?id='+task.id,
                             type: 'GET',dataType: 'json',
                             success: function(response) {
 
-                                // Hide the modal
-                                modal.hide();
+                                // AJAX Request
+                                $.ajax({
+                                    url: '/api/'+task.targetTable+'/archive?id='+task.targetId,
+                                    type: 'GET',dataType: 'json',
+                                    success: function(response) {
+
+                                        // Hide the modal
+                                        modal.hide();
+                                    }
+                                });
                             }
                         });
                     }, 300);
@@ -331,7 +339,7 @@ const TaskDetails = function(id, element, callback = null){
                                                                 submit: function(form){
                                                                     const values = form.val();
                                                                     $.ajax({
-                                                                        url: '/api/tasks/due?id='+response.record.id,
+                                                                        url: '/api/tasks/update?id='+response.record.id,
                                                                         headers: {'X-CSRF-Authorization': CSRF_KEY},
                                                                         type: 'POST',dataType: 'json',
                                                                         data: values,
@@ -740,8 +748,8 @@ function process_function_TaskAssign(task, value, callback = null){
         shouldAssign = false;
     }
 
-    // Check if the task as a root and if the root has an assignedTo field
-    if(typeof task.root !== "undefined" && typeof task.root.target !== "undefined" && (typeof task.root.target.assignedTo === "undefined"  || task.root.target.assignedTo.id === null)){
+    // Check if the task as a root and if the root is assigned.
+    if(typeof task.root !== "undefined" && typeof task.root.target !== "undefined" && typeof task.root.target.assignedTo !== "undefined" && task.root.target.assignedTo.id !== null){
         shouldAssign = false;
     }
 
