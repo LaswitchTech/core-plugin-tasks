@@ -153,285 +153,336 @@ const TaskArchive = function(task){
 // Details of a Task
 const TaskDetails = function(id, element, callback = null){
 
-    // AJAX Request
-    $.ajax({
-        url: '/api/tasks/fetch?id='+id,
-        type: 'GET',dataType: 'json',
-        success: function(response) {
-            console.log(response);
+    // Ensure Storage is ready
+    (async function () {
+        await builder.Storage._ensureReady?.();
+        // AJAX Request
+        $.ajax({
+            url: '/api/tasks/fetch?id='+id,
+            type: 'GET',dataType: 'json',
+            success: async function(response) {
 
-            // Clear the details, notes and progress
-            element.html('');
+                // Configure Storage
+                builder.Storage.setKey(`task:${response.record.id}`);
+                await builder.Storage.set(response);
+                console.log(await builder.Storage.get());
 
-            // Create a Card for the task details
-            const Progress = builder.Component(
-                "card",
-                element,
-                {
-                    class: {
-                        component: "mb-3",
-                        body: "p-0",
-                    },
-                    icon: "check-square",
-                    title: builder.Locale.get("Progress"),
-                },
-                function(card,component){
-                    ProcessTree(response.record, component.body, component.body);
-                },
-            );
+                // Clear the details, notes and progress
+                element.html('');
 
-            // Create a Tabs for the task
-            const Tabs = builder.Component(
-                "tabs",
-                element,
-                {
-                    class: {
-                        navbar: 'nav-pills',
-                    },
-                },
-                function(tabs,card){
-                    card._component.body.removeClass('card-body');
-                    tabs.add(
-                        'details',
-                        {
-                            icon: "info-circle",
-                            label: builder.Locale.get("Details"),
+                // Create a Card for the task details
+                const Progress = builder.Component(
+                    "card",
+                    element,
+                    {
+                        class: {
+                            component: "mb-3",
+                            body: "p-0",
                         },
-                        function(tab,nav){
+                        icon: "check-square",
+                        title: builder.Locale.get("Progress"),
+                    },
+                    async function(card,component){
 
-                            // Styling
-                            tab.addClass('px-4 py-3 position-relative');
+                        // Retrieve the record
+                        let record = await builder.Storage.get('record');
 
-                            // Add a controls area
-                            let controls = $(document.createElement('div')).addClass('position-absolute btn-group top-0 end-0 p-3').appendTo(tab);
-                            controls.archive = $(document.createElement('button')).attr({
-                                "class": "btn btn-sm btn-dark",
-                            }).html('<i class="bi bi-archive me-2"></i>'+builder.Locale.get("Archive")).appendTo(controls);
-                            controls.archive.click(function(){
-                                TaskArchive(response.record);
-                            });
+                        // Create a progress bar
+                        ProcessTree(record, component.body, component.body);
+                    },
+                );
 
-                            // Create a grid for the details
-                            let row = $(document.createElement('div')).addClass('row g-3').appendTo(tab);
+                // Create a Tabs for the task
+                const Tabs = builder.Component(
+                    "tabs",
+                    element,
+                    {
+                        class: {
+                            navbar: 'nav-pills',
+                        },
+                    },
+                    async function(tabs,card){
 
-                            // Update the details
-                            for(const [key, value] of Object.entries(response.record)){
-                                switch(key){
-                                    case 'label':
-                                        let cellLabel = $(document.createElement('div')).addClass('col-12 d-flex align-items-center').html('<h4 class="m-0">'+builder.Parser.parse(value)+'</h4>').appendTo(row);
-                                        cellLabel.find('[data-vcard]').off().click(function(){
-                                            vCardModal($(this).attr('data-vcard'),$(this).attr('data-vcard-name'));
-                                        });
-                                        break;
-                                    case 'progress':
-                                        var cellProgress = $(document.createElement('div')).addClass('col-6').appendTo(row);
-                                        cellProgress.header = $(document.createElement('h4')).addClass('w-100 m-0').appendTo(cellProgress);
-                                        if(value){
-                                            cellProgress.badge = $(document.createElement('span')).addClass('badge w-100 text-bg-'+response.record.process[response.record.progress].color).text(builder.Locale.get(response.record.process[response.record.progress].name)).appendTo(cellProgress.header);
-                                            cellProgress.icon = $(document.createElement('i')).addClass('me-1 bi bi-'+response.record.process[response.record.progress].icon).prependTo(cellProgress.badge);
-                                        } else {
-                                            cellProgress.badge = $(document.createElement('span')).addClass('badge w-100 text-bg-success').text(builder.Locale.get('New')).appendTo(cellProgress.header);
-                                            cellProgress.icon = $(document.createElement('i')).addClass('me-1 bi bi-stars').prependTo(cellProgress.badge);
-                                        }
-                                        cellProgress.badge.attr({"data-type": "status", "data-task": response.record.id});
-                                        break;
-                                    case 'priority':
-                                        let color = ['secondary','primary','warning','orange','danger'];
-                                        let name = ['Low','Normal','High','Urgent','Critical'];
-                                        let icon = ['exclamation-triangle','info-circle','exclamation-circle','exclamation-diamond','exclamation-square'];
-                                        cellPriority = $(document.createElement('div')).addClass('col-6 cursor-pointer').appendTo(row);
-                                        '<span class="badge w-100 text-bg-'+color[value]+'"><i class="me-1 bi bi-'+icon[value]+'"></i>'+builder.Locale.get(name[value])+'</span>'
-                                        cellPriority.heading = $(document.createElement('h4')).attr({
-                                            "class": "w-100 m-0",
-                                        }).appendTo(cellPriority);
-                                        cellPriority.badge = $(document.createElement('span')).attr({
-                                            "class": "badge w-100 text-bg-"+color[value],
-                                            "data-type": "priority",
-                                            "data-task": response.record.id,
-                                        }).html('<i class="me-1 bi bi-'+icon[value]+'"></i>'+builder.Locale.get(name[value])).appendTo(cellPriority.heading);
-                                        cellPriority.click(function(){
-                                            TaskPriorityModal(response.record);
-                                        });
-                                        break;
-                                    case 'assignedTo':
-                                        let cellAssignedTo = $(document.createElement('div')).addClass('col-6 py-0').appendTo(row);
-                                        cellAssignedTo.trigger = $(document.createElement('div')).addClass('px-3 py-2 rounded').attr('style','transition: all 300ms ease 0s;').appendTo(cellAssignedTo);
-                                        cellAssignedTo.avatar = $(document.createElement('div')).attr({
-                                            "class": "d-flex align-items-center",
-                                            "data-type": 'avatar',
-                                            "data-task": response.record.id,
-                                        }).appendTo(cellAssignedTo.trigger);
-                                        cellAssignedTo.avatar.username = $(document.createElement('span')).attr({
-                                            "class": "my-1",
-                                            "data-bs-toggle": "tooltip",
-                                            "data-bs-placement": "top",
-                                            "title": response.record.assignedTo.username,
-                                            "data-bs-title": response.record.assignedTo.username,
-                                        }).text(response.record.assignedTo.username).appendTo(cellAssignedTo.avatar);
-                                        cellAssignedTo.avatar.avatar = $(document.createElement('img')).attr({
-                                            "class": "rounded-circle me-1",
-                                            "alt": response.record.assignedTo.username,
-                                            "style": "width: 48px; height: 48px;",
-                                            "src": "/avatar?username="+response.record.assignedTo.username,
-                                        }).prependTo(cellAssignedTo.avatar);
-                                        cellAssignedTo.trigger.hover(
-                                            function(){
-                                                cellAssignedTo.trigger.addClass('text-bg-secondary cursor-pointer');
-                                            },
-                                            function(){
-                                                cellAssignedTo.trigger.removeClass('text-bg-secondary cursor-pointer');
-                                            },
-                                        );
-                                        cellAssignedTo.trigger.click(function(){
-                                            TaskAssignModal(response.record);
-                                        });
-                                        break;
-                                    case 'due':
-                                        let cellDue = $(document.createElement('div')).addClass('col-6 py-0').appendTo(row);
-                                        cellDue.trigger = $(document.createElement('div')).addClass('px-3 py-2 rounded').attr('style','transition: all 300ms ease 0s;').appendTo(cellDue);
-                                        cellDue.flex = $(document.createElement('div')).addClass('d-flex justify-content-start align-items-center').appendTo(cellDue.trigger);
-                                        cellDue.icon = $(document.createElement('div')).addClass('me-2 rounded-circle p-2 text-bg-primary d-flex justify-content-center align-items-center').css({"height":"48px","width":"48px"}).html('<i class="bi bi-calendar-event" style="font-size:1.25rem;"></i>').appendTo(cellDue.flex);
-                                        cellDue.date = $(document.createElement('div')).html(moment(value).format('YYYY-MM-DD HH:mm')).appendTo(cellDue.flex);
-                                        cellDue.trigger.hover(
-                                            function(){
-                                                cellDue.trigger.addClass('text-bg-secondary cursor-pointer');
-                                            },
-                                            function(){
-                                                cellDue.trigger.removeClass('text-bg-secondary cursor-pointer');
-                                            },
-                                        );
-                                        cellDue.trigger.click(function(){
-                                            builder.Component(
-                                                "modal",
-                                                null,
-                                                {
-                                                    onEnter: true,
-                                                    destroy:true,
-                                                    icon: "calendar-event",
-                                                    title: builder.Locale.get("Change Due Date"),
-                                                    cancel: false,
-                                                    submit: true,
-                                                    size: "md",
-                                                    callback: {
-                                                        submit: function(element,modal){
-                                                            element.form.submit();
-                                                        },
-                                                    },
+                        // Retrieve the record
+                        let record = await builder.Storage.get('record');
+
+                        // Set the table
+                        let table = 'tasks'
+
+                        // Styling
+                        card._component.body.removeClass('card-body');
+
+                        // Details
+                        tabs.add(
+                            'details',
+                            {
+                                icon: "info-circle",
+                                label: builder.Locale.get("Details"),
+                            },
+                            function(tab,nav){
+
+                                // Styling
+                                tab.addClass('px-4 py-3 position-relative');
+
+                                // Add a controls area
+                                let controls = $(document.createElement('div')).addClass('position-absolute btn-group top-0 end-0 p-3').appendTo(tab);
+                                controls.archive = $(document.createElement('button')).attr({
+                                    "class": "btn btn-sm btn-dark",
+                                }).html('<i class="bi bi-archive me-2"></i>'+builder.Locale.get("Archive")).appendTo(controls);
+                                controls.archive.click(function(){
+                                    TaskArchive(record);
+                                });
+
+                                // Create a grid for the details
+                                let row = $(document.createElement('div')).addClass('row g-3').appendTo(tab);
+
+                                // Update the details
+                                for(const [key, value] of Object.entries(record)){
+                                    switch(key){
+                                        case 'label':
+                                            let cellLabel = $(document.createElement('div')).addClass('col-12 d-flex align-items-center').html('<h4 class="m-0">'+builder.Parser.parse(value)+'</h4>').appendTo(row);
+                                            cellLabel.find('[data-vcard]').off().click(function(){
+                                                vCardModal($(this).attr('data-vcard'),$(this).attr('data-vcard-name'));
+                                            });
+                                            break;
+                                        case 'progress':
+                                            var cellProgress = $(document.createElement('div')).addClass('col-6').appendTo(row);
+                                            cellProgress.header = $(document.createElement('h4')).addClass('w-100 m-0').appendTo(cellProgress);
+                                            if(value){
+                                                cellProgress.badge = $(document.createElement('span')).addClass('badge w-100 text-bg-'+record.process[record.progress].color).text(builder.Locale.get(record.process[record.progress].name)).appendTo(cellProgress.header);
+                                                cellProgress.icon = $(document.createElement('i')).addClass('me-1 bi bi-'+record.process[record.progress].icon).prependTo(cellProgress.badge);
+                                            } else {
+                                                cellProgress.badge = $(document.createElement('span')).addClass('badge w-100 text-bg-success').text(builder.Locale.get('New')).appendTo(cellProgress.header);
+                                                cellProgress.icon = $(document.createElement('i')).addClass('me-1 bi bi-stars').prependTo(cellProgress.badge);
+                                            }
+                                            cellProgress.badge.attr({"data-type": "status", "data-task": record.id});
+                                            break;
+                                        case 'priority':
+                                            let color = ['secondary','primary','warning','orange','danger'];
+                                            let name = ['Low','Normal','High','Urgent','Critical'];
+                                            let icon = ['exclamation-triangle','info-circle','exclamation-circle','exclamation-diamond','exclamation-square'];
+                                            cellPriority = $(document.createElement('div')).addClass('col-6 cursor-pointer').appendTo(row);
+                                            '<span class="badge w-100 text-bg-'+color[value]+'"><i class="me-1 bi bi-'+icon[value]+'"></i>'+builder.Locale.get(name[value])+'</span>'
+                                            cellPriority.heading = $(document.createElement('h4')).attr({
+                                                "class": "w-100 m-0",
+                                            }).appendTo(cellPriority);
+                                            cellPriority.badge = $(document.createElement('span')).attr({
+                                                "class": "badge w-100 text-bg-"+color[value],
+                                                "data-type": "priority",
+                                                "data-task": record.id,
+                                            }).html('<i class="me-1 bi bi-'+icon[value]+'"></i>'+builder.Locale.get(name[value])).appendTo(cellPriority.heading);
+                                            cellPriority.click(function(){
+                                                TaskPriorityModal(record);
+                                            });
+                                            break;
+                                        case 'assignedTo':
+                                            let cellAssignedTo = $(document.createElement('div')).addClass('col-6 py-0').appendTo(row);
+                                            cellAssignedTo.trigger = $(document.createElement('div')).addClass('px-3 py-2 rounded').attr('style','transition: all 300ms ease 0s;').appendTo(cellAssignedTo);
+                                            cellAssignedTo.avatar = $(document.createElement('div')).attr({
+                                                "class": "d-flex align-items-center",
+                                                "data-type": 'avatar',
+                                                "data-task": record.id,
+                                            }).appendTo(cellAssignedTo.trigger);
+                                            cellAssignedTo.avatar.username = $(document.createElement('span')).attr({
+                                                "class": "my-1",
+                                                "data-bs-toggle": "tooltip",
+                                                "data-bs-placement": "top",
+                                                "title": record.assignedTo.username,
+                                                "data-bs-title": record.assignedTo.username,
+                                            }).text(record.assignedTo.username).appendTo(cellAssignedTo.avatar);
+                                            cellAssignedTo.avatar.avatar = $(document.createElement('img')).attr({
+                                                "class": "rounded-circle me-1",
+                                                "alt": record.assignedTo.username,
+                                                "style": "width: 48px; height: 48px;",
+                                                "src": "/avatar?username="+record.assignedTo.username,
+                                            }).prependTo(cellAssignedTo.avatar);
+                                            cellAssignedTo.trigger.hover(
+                                                function(){
+                                                    cellAssignedTo.trigger.addClass('text-bg-secondary cursor-pointer');
                                                 },
-                                                function(modal,component){
-                                                    component.header.addClass('text-bg-warning');
-                                                    component.footer.submit
-                                                        .addClass('btn-success')
-                                                        .removeClass('btn-link')
-                                                        .attr('style','border-bottom-left-radius: var(--bs-modal-inner-border-radius) !important;border-bottom-right-radius: var(--bs-modal-inner-border-radius) !important;');
-                                                    component.footer.submit.icon = $(document.createElement('i')).addClass('bi bi-save me-1').prependTo(component.footer.submit);
-                                                    component.form = builder.Component(
-                                                        "form",
-                                                        component.body,
-                                                        {
-                                                            callback:{
-                                                                val: function(values){
-                                                                    values.due = values.date+" "+values.time;
-                                                                    delete values.date;
-                                                                    delete values.time;
-                                                                    return values;
-                                                                },
-                                                                submit: function(form){
-                                                                    const values = form.val();
-                                                                    $.ajax({
-                                                                        url: '/api/tasks/update?id='+response.record.id,
-                                                                        headers: {'X-CSRF-Authorization': CSRF_KEY},
-                                                                        type: 'POST',dataType: 'json',
-                                                                        data: values,
-                                                                        success: function(response) {
-                                                                            cellDue.date.html(moment(values.due).format('YYYY-MM-DD HH:mm'));
-                                                                            modal.hide();
-                                                                        }
-                                                                    });
-                                                                },
-                                                            },
-                                                        },
-                                                        function(form,component){
-                                                            form.add(
-                                                                {
-                                                                    class: { field: 'mb-3' },
-                                                                    name: 'date',
-                                                                    label: builder.Locale.get('Date'),
-                                                                    icon: 'calendar',
-                                                                    type: 'date',
-                                                                    value: value ? value.split(' ')[0] : moment().format('YYYY-MM-DD'),
-                                                                },
-                                                            );
-                                                            form.add(
-                                                                {
-                                                                    name: 'time',
-                                                                    label: builder.Locale.get('Time'),
-                                                                    icon: 'clock',
-                                                                    type: 'time',
-                                                                    value: value ? value.split(' ')[1] : moment().format('HH:mm'),
-                                                                },
-                                                            );
-                                                            modal.show();
-                                                        },
-                                                    );
+                                                function(){
+                                                    cellAssignedTo.trigger.removeClass('text-bg-secondary cursor-pointer');
                                                 },
                                             );
-                                        });
-                                        break;
-                                    case 'link':
-                                        let cellLink = $(document.createElement('div')).addClass('col-12 py-0').appendTo(row);
-                                        cellLink.trigger = $(document.createElement('div')).addClass('px-3 py-2 rounded').attr('style','transition: all 300ms ease 0s;').appendTo(cellLink);
-                                        cellLink.flex = $(document.createElement('div')).addClass('d-flex justify-content-start align-items-center').appendTo(cellLink.trigger);
-                                        cellLink.icon = $(document.createElement('div')).addClass('me-2 rounded-circle p-2 text-bg-info d-flex justify-content-center align-items-center').css({"height":"48px","width":"48px"}).html('<i class="bi bi-link-45deg" style="font-size:1.25rem;"></i>').appendTo(cellLink.flex);
-                                        cellLink.label = $(document.createElement('div')).text(builder.Locale.get('Linked Object')).appendTo(cellLink.flex);
-                                        cellLink.trigger.hover(
-                                            function(){
-                                                cellLink.trigger.addClass('text-bg-secondary cursor-pointer');
-                                            },
-                                            function(){
-                                                cellLink.trigger.removeClass('text-bg-secondary cursor-pointer');
-                                            },
-                                        );
-                                        cellLink.trigger.click(function(){
-                                            window.location.href = value;
-                                        });
-                                        break;
+                                            cellAssignedTo.trigger.click(function(){
+                                                TaskAssignModal(record);
+                                            });
+                                            break;
+                                        case 'due':
+                                            let cellDue = $(document.createElement('div')).addClass('col-6 py-0').appendTo(row);
+                                            cellDue.trigger = $(document.createElement('div')).addClass('px-3 py-2 rounded').attr('style','transition: all 300ms ease 0s;').appendTo(cellDue);
+                                            cellDue.flex = $(document.createElement('div')).addClass('d-flex justify-content-start align-items-center').appendTo(cellDue.trigger);
+                                            cellDue.icon = $(document.createElement('div')).addClass('me-2 rounded-circle p-2 text-bg-primary d-flex justify-content-center align-items-center').css({"height":"48px","width":"48px"}).html('<i class="bi bi-calendar-event" style="font-size:1.25rem;"></i>').appendTo(cellDue.flex);
+                                            cellDue.date = $(document.createElement('div')).html(moment(value).format('YYYY-MM-DD HH:mm')).appendTo(cellDue.flex);
+                                            cellDue.trigger.hover(
+                                                function(){
+                                                    cellDue.trigger.addClass('text-bg-secondary cursor-pointer');
+                                                },
+                                                function(){
+                                                    cellDue.trigger.removeClass('text-bg-secondary cursor-pointer');
+                                                },
+                                            );
+                                            cellDue.trigger.click(function(){
+                                                builder.Component(
+                                                    "modal",
+                                                    null,
+                                                    {
+                                                        onEnter: true,
+                                                        destroy:true,
+                                                        icon: "calendar-event",
+                                                        title: builder.Locale.get("Change Due Date"),
+                                                        cancel: false,
+                                                        submit: true,
+                                                        size: "md",
+                                                        callback: {
+                                                            submit: function(element,modal){
+                                                                element.form.submit();
+                                                            },
+                                                        },
+                                                    },
+                                                    function(modal,component){
+                                                        component.header.addClass('text-bg-warning');
+                                                        component.footer.submit
+                                                            .addClass('btn-success')
+                                                            .removeClass('btn-link')
+                                                            .attr('style','border-bottom-left-radius: var(--bs-modal-inner-border-radius) !important;border-bottom-right-radius: var(--bs-modal-inner-border-radius) !important;');
+                                                        component.footer.submit.icon = $(document.createElement('i')).addClass('bi bi-save me-1').prependTo(component.footer.submit);
+                                                        component.form = builder.Component(
+                                                            "form",
+                                                            component.body,
+                                                            {
+                                                                callback:{
+                                                                    val: function(values){
+                                                                        values.due = values.date+" "+values.time;
+                                                                        delete values.date;
+                                                                        delete values.time;
+                                                                        return values;
+                                                                    },
+                                                                    submit: function(form){
+                                                                        const values = form.val();
+                                                                        $.ajax({
+                                                                            url: '/api/tasks/update?id='+record.id,
+                                                                            headers: {'X-CSRF-Authorization': CSRF_KEY},
+                                                                            type: 'POST',dataType: 'json',
+                                                                            data: values,
+                                                                            success: function(response) {
+                                                                                cellDue.date.html(moment(values.due).format('YYYY-MM-DD HH:mm'));
+                                                                                modal.hide();
+                                                                            }
+                                                                        });
+                                                                    },
+                                                                },
+                                                            },
+                                                            function(form,component){
+                                                                form.add(
+                                                                    {
+                                                                        class: { field: 'mb-3' },
+                                                                        name: 'date',
+                                                                        label: builder.Locale.get('Date'),
+                                                                        icon: 'calendar',
+                                                                        type: 'date',
+                                                                        value: value ? value.split(' ')[0] : moment().format('YYYY-MM-DD'),
+                                                                    },
+                                                                );
+                                                                form.add(
+                                                                    {
+                                                                        name: 'time',
+                                                                        label: builder.Locale.get('Time'),
+                                                                        icon: 'clock',
+                                                                        type: 'time',
+                                                                        value: value ? value.split(' ')[1] : moment().format('HH:mm'),
+                                                                    },
+                                                                );
+                                                                modal.show();
+                                                            },
+                                                        );
+                                                    },
+                                                );
+                                            });
+                                            break;
+                                        case 'link':
+                                            let cellLink = $(document.createElement('div')).addClass('col-12 py-0').appendTo(row);
+                                            cellLink.trigger = $(document.createElement('div')).addClass('px-3 py-2 rounded').attr('style','transition: all 300ms ease 0s;').appendTo(cellLink);
+                                            cellLink.flex = $(document.createElement('div')).addClass('d-flex justify-content-start align-items-center').appendTo(cellLink.trigger);
+                                            cellLink.icon = $(document.createElement('div')).addClass('me-2 rounded-circle p-2 text-bg-info d-flex justify-content-center align-items-center').css({"height":"48px","width":"48px"}).html('<i class="bi bi-link-45deg" style="font-size:1.25rem;"></i>').appendTo(cellLink.flex);
+                                            cellLink.label = $(document.createElement('div')).text(builder.Locale.get('Linked Object')).appendTo(cellLink.flex);
+                                            cellLink.trigger.hover(
+                                                function(){
+                                                    cellLink.trigger.addClass('text-bg-secondary cursor-pointer');
+                                                },
+                                                function(){
+                                                    cellLink.trigger.removeClass('text-bg-secondary cursor-pointer');
+                                                },
+                                            );
+                                            cellLink.trigger.click(function(){
+                                                window.location.href = value;
+                                            });
+                                            break;
+                                    }
                                 }
-                            }
-                        },
-                    );
-                    tabs.add(
-                        'activities',
-                        {
-                            icon: "activity",
-                            label: builder.Locale.get("Activity"),
-                        },
-                        function(tab,nav){
-                            tab.addClass('px-4 py-3');
-                            EventFeed(response.dependencies.event, tab);
-                        },
-                    );
-                    tabs.add(
-                        'notes',
-                        {
-                            icon: "stickies",
-                            label: builder.Locale.get("Notes"),
-                        },
-                        function(tab,nav){
-                            var targetTable = response.record.target.targetTable ? response.record.target.targetTable : response.record.targetTable;
-                            var targetId = response.record.target.targetId ? response.record.target.targetId : response.record.targetId;
-                            NotesFeed(response.dependencies.notes, tab, targetTable, targetId);
-                        },
-                    );
-                },
-            );
+                            },
+                        );
 
-            // Execute Callback
-            if(typeof callback === "function"){
-                callback(Progress, Tabs);
+                        // Retrieve the notes
+                        let notes = await builder.Storage.get('dependencies:notes');
+
+                        // Add the Notes tab
+                        tabs.add(
+                            'notes',
+                            {
+                                icon: "stickies",
+                                label: builder.Locale.get("Notes"),
+                            },
+                            function(tab,nav){
+                                card.notes = tab;
+                                NotesFeed(notes ?? [], tab, table, record.id);
+                            },
+                        );
+
+                        // Retrieve the event
+                        let event = await builder.Storage.get('dependencies:event');
+
+                        // Add the Event tab
+                        tabs.add(
+                            'activities',
+                            {
+                                icon: "activity",
+                                label: builder.Locale.get("Activity"),
+                            },
+                            function(tab,nav){
+                                tab.addClass('px-4 py-3');
+                                EventFeed(event, tab);
+                            },
+                        );
+
+                        // Retrieve the relationship
+                        let relationship = await builder.Storage.get('dependencies:relationship');
+
+                        // Add the Relationship tab
+                        tabs.add(
+                            'related',
+                            {
+                                icon: "diagram-2",
+                                label: builder.Locale.get("Related"),
+                            },
+                            function(tab,nav){
+                                tab.addClass('px-4 py-3');
+                                card.related = tab;
+                                RelationshipFeed(relationship, tab, table, record.id, function(feed){
+                                    card.related.feed = feed;
+                                });
+                            },
+                        );
+                    },
+                );
+
+                // Execute Callback
+                if(typeof callback === "function"){
+                    callback(Progress, Tabs);
+                }
             }
-        }
-    });
+        });
+    })();
 };
 // Task Modal
 const TaskModal = function(id){
