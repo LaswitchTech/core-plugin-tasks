@@ -119,12 +119,27 @@ const TaskArchive = function(task){
 
                                 // AJAX Request
                                 $.ajax({
-                                    url: '/api/'+task.targetTable+'/archive?id='+task.targetId,
+                                    url: '/api/'+task.targetTable+'/fetch?id='+task.targetId,
                                     type: 'GET',dataType: 'json',
+                                    error: function(xhr, status, error) {
+                                        if(xhr.status === 404){
+                                            // If the target is not found, we can assume it has been archived
+                                            // Hide the modal
+                                            modal.hide();
+                                        }
+                                    },
                                     success: function(response) {
 
-                                        // Hide the modal
-                                        modal.hide();
+                                        // AJAX Request
+                                        $.ajax({
+                                            url: '/api/'+task.targetTable+'/archive?id='+task.targetId,
+                                            type: 'GET',dataType: 'json',
+                                            success: function(response) {
+
+                                                // Hide the modal
+                                                modal.hide();
+                                            }
+                                        });
                                     }
                                 });
                             }
