@@ -65,6 +65,7 @@
                         conditions: [
                             {key: 'assignedTo', operator: '=', value: USER_ID},
                             {key: 'isActive', operator: '=', value: 1},
+                            {key: 'isArchived', operator: '<>', value: 1},
                             {key: 'isCompleted', operator: '=', value: 0},
                         ]
                     },
