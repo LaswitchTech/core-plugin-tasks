@@ -286,6 +286,14 @@ class TasksEndpoint extends BaseEndpoint {
      */
     public function archiveAction(): array
     {
+        // Retrieve the record
+        $record = $this->Model->{$this->name}->fetch(intval($this->Request->getParams('REQUEST','id')));
+
+        // Check if the record is already archived
+        if($record['isArchived']){
+            return ['status' => 200, 'message' => 'The '.$record.' is already archived.', 'data' => ['record' => $record]];
+        }
+
         // Call the parent constructor
         $message = parent::archiveAction();
 
@@ -304,26 +312,26 @@ class TasksEndpoint extends BaseEndpoint {
                     'message' => 'Task Archived by <vcard>'.$this->Auth->user()->vcard['id'].':'.$this->Auth->user()->username.'</vcard>',
                     'icon' => 'circle',
                     'color' => 'secondary',
-                    'link' => '/plugin/tasks/details?id='.$message['data']['record']['id'],
+                    'link' => '/plugin/tasks/details?id='.$record['id'],
                     'targetTable' => 'tasks',
-                    'targetId' => $message['data']['record']['id'],
+                    'targetId' => $record['id'],
                 ];
 
                 // Create the event
                 $message['data']['event'][] = $this->Model->Event->create($event);
 
                 // Setup a new event for the target
-                $event['link'] = '/plugin/'.$message['data']['record']['targetTable'].'/details?id='.$message['data']['record']['targetId'];
-                $event['targetTable'] = $message['data']['record']['targetTable'];
-                $event['targetId'] = $message['data']['record']['targetId'];
+                $event['link'] = '/plugin/'.$record['targetTable'].'/details?id='.$record['targetId'];
+                $event['targetTable'] = $record['targetTable'];
+                $event['targetId'] = $record['targetId'];
 
                 // Create the event
                 $message['data']['event'][] = $this->Model->Event->create($event);
 
                 // Setup a new event for the target
-                $event['link'] = '/plugin/'.$message['data']['record']['root']['targetTable'].'/details?id='.$message['data']['record']['root']['targetId'];
-                $event['targetTable'] = $message['data']['record']['root']['targetTable'];
-                $event['targetId'] = $message['data']['record']['root']['targetId'];
+                $event['link'] = '/plugin/'.$record['root']['targetTable'].'/details?id='.$record['root']['targetId'];
+                $event['targetTable'] = $record['root']['targetTable'];
+                $event['targetId'] = $record['root']['targetId'];
 
                 // Create the event
                 $message['data']['event'][] = $this->Model->Event->create($event);
