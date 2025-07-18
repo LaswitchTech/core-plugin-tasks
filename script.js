@@ -450,7 +450,7 @@ const TaskDetails = function(id, element, callback = null){
                             },
                             function(tab,nav){
                                 card.notes = tab;
-                                NotesFeed(notes ?? [], tab, table, record.id);
+                                NotesFeed(notes ?? [], tab, record.root.targetTable, record.root.targetId);
                             },
                         );
 
