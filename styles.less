@@ -1,0 +1,20 @@
+.task-modal {
+    .card.vcard {
+        .card-body {
+            transition: .3s ease;
+
+            .avatar {
+                transition: .3s ease;
+            }
+
+            &:hover {
+                background-color: var(--bs-light);
+
+                .avatar {
+                    --bs-border-color: var(--bs-primary);
+                    box-shadow: 0 0 0 var(--bs-spacer-1) ~"rgba(var(--bs-primary-rgb),.25)";
+                }
+            }
+        }
+    }
+}
