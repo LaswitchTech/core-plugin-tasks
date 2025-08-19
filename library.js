@@ -281,23 +281,6 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                                                         self._builder.Widget('vcard',{data: response.record.target.vcard.id});
                                                     });
 
-                                                    // Add hover effect to the card
-                                                    // card._component.vcard.body.hover(
-                                                    //     function(){
-                                                    //         card._component.vcard.body.addClass('bg-light');
-                                                    //         card._component.vcard.body.info.avatar.removeClass('border-3').addClass('border-primary').css({
-                                                    //             'box-shadow': '0 0 0 var(--bs-spacer-1) rgba(var(--bs-primary-rgb),.25)',
-                                                    //         });
-                                                    //     },
-                                                    //     function(){
-                                                    //         card._component.vcard.body.removeClass('bg-light');
-                                                    //         card._component.vcard.body.info.avatar.addClass('border-3').removeClass('border-primary').css({
-                                                    //             'border-color': '',
-                                                    //             'box-shadow': '',
-                                                    //         });
-                                                    //     },
-                                                    // );
-
                                                     // Add Footer Controls
                                                     card._component.vcard.footer.controls = $(document.createElement('div')).addClass('controls btn-group flex-fill').appendTo(card._component.vcard.footer);
                                                     card._component.vcard.footer.controls.call = $(document.createElement('a')).attr({
