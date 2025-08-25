@@ -1,10 +1,10 @@
 <!-- ======= Task ======= -->
 <?php if($this->Auth->isAuthenticated()): ?>
-    <li class="nav-item">
+    <div class="nav-item">
         <div class="dropdown">
             <button class="nav-link text-decoration-none py-2 animate-pulse-hover" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                 <i class="fs-4 bi bi-list-task" style="height: 2.25rem !important;width: 1.5rem !important"></i>
-                <span id="tasksNotification" class="position-absolute top-25 start-75 translate-middle border border-light rounded-circle text-bg-primary d-none" style="padding:8px"></span>
+                <span id="tasksNotification" class="position-absolute top-25 start-75 translate-middle border border-light rounded-circle text-bg-teal d-none" style="padding:8px"></span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end pb-0" style="min-width:400px;max-width:500px">
                 <li>
@@ -22,7 +22,7 @@
                 </li>
             </ul>
         </div>
-    </li>
+    </div>
     <script>
         $(document).ready(function(){
 

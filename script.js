@@ -61,7 +61,7 @@ const TaskUnassign = function(task, callback = null){
             },
         },
         function(modal,component){
-            component.header.addClass('text-bg-warning');
+            component.addClass('modal-warning');
             component.footer.submit
                 .addClass('btn-warning')
                 .removeClass('btn-link')
@@ -154,7 +154,7 @@ const TaskArchive = function(task){
             const componentModal = component;
 
             // Style the modal
-            component.header.addClass('text-bg-dark');
+            component.addClass('modal-dark');
             component.footer.submit.addClass('btn-dark').removeClass('btn-link').attr({
                 "style": "border-bottom-right-radius: var(--bs-modal-inner-border-radius) !important;border-bottom-left-radius: var(--bs-modal-inner-border-radius) !important;",
             }).text(builder.Locale.get('Archive'));
@@ -356,7 +356,7 @@ const TaskDetails = function(id, element, callback = null){
                                                         },
                                                     },
                                                     function(modal,component){
-                                                        component.header.addClass('text-bg-warning');
+                                                        component.addClass('modal-warning');
                                                         component.footer.submit
                                                             .addClass('btn-success')
                                                             .removeClass('btn-link')
@@ -517,7 +517,7 @@ const TaskModal = function(id){
         function(modal,component){
 
             // Styling
-            component.header.addClass('text-bg-primary');
+            component.addClass('modal-primary');
             component.body.addClass('p-0');
             component.footer.remove();
 
@@ -562,12 +562,12 @@ const TaskPriorityModal = function(task){
             },
         },
         function(modal,component){
-                component.header.addClass('text-bg-warning');
-                component.footer.submit
-                    .addClass('btn-success')
-                    .removeClass('btn-link')
-                    .attr('style','border-bottom-left-radius: var(--bs-modal-inner-border-radius) !important;border-bottom-right-radius: var(--bs-modal-inner-border-radius) !important;');
-                component.footer.submit.icon = $(document.createElement('i')).addClass('bi bi-save me-1').prependTo(component.footer.submit);
+            component.addClass('modal-warning');
+            component.footer.submit
+                .addClass('btn-success')
+                .removeClass('btn-link')
+                .attr('style','border-bottom-left-radius: var(--bs-modal-inner-border-radius) !important;border-bottom-right-radius: var(--bs-modal-inner-border-radius) !important;');
+            component.footer.submit.icon = $(document.createElement('i')).addClass('bi bi-save me-1').prependTo(component.footer.submit);
             component.form = builder.Component(
                 "form",
                 component.body,
@@ -851,7 +851,7 @@ function process_function_TaskAssign(task, value, callback = null){
                     },
                     function(modal,component){
                         const componentModal = component;
-                        component.header.addClass('text-bg-primary');
+                        component.addClass('modal-primary');
                         component.footer.submit
                             .addClass('btn-primary')
                             .removeClass('btn-link')
