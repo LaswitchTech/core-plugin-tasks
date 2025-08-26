@@ -990,3 +990,394 @@ builder.add('widgets','task', class extends builder.ComponentClass {
         );
     }
 });
+builder.add('widgets','tasks', class extends builder.ComponentClass {
+
+    _init(){
+        this._properties = {
+            class: {
+                component: null,
+            },
+            data: null,
+            conditions: [],
+            interval: 10000,
+            autoStart: false,
+            callback: {},
+        };
+        this._datatable = null;
+        this._interval = null;
+        this._count = 0;
+    }
+
+    _create(){
+
+        // Set Self
+        const self = this;
+
+        // Create Component
+        this._component = $(document.createElement('div')).attr({
+            'id': 'tasks' + this._id,
+            'class': 'tasks-feed',
+        });
+        this._component.id = this._component.attr('id');
+
+        // Add class to the component
+        if(this._properties.class.component){
+            this._component.addClass(this._properties.class.component);
+        }
+
+        // Create the Table
+        this._builder.Component(
+            'datatable',
+            this._component,
+            this._properties,
+            function(datatable, component){
+                console.log('Tasks datatable loaded', datatable, component);
+
+                // Set _datatable
+                self.datatable(datatable);
+
+                // Add Records
+                self.load(self._properties.data);
+
+                // Check if autoStart is enabled
+                if(self._properties.autoStart){
+
+                    // Start
+                    setTimeout(function(){
+                        self.start();
+                    }, self._properties.interval);
+                }
+            },
+        );
+    }
+
+    config(options){
+
+        // Set Self
+        const self = this;
+
+        // Execute parent config
+        super.config(options);
+
+        // Table Properties
+        this._properties.class.buttons = 'tasks-controls';
+        this._properties.class.table = 'tasks-table';
+        this._properties.class.footer = 'tasks-footer';
+        this._properties.standardSearch = true;
+        this._properties.advancedSearch = false;
+        this._properties.showButtonsLabel = false;
+
+        // Table Actions
+        this._properties.actions = {
+            details:{
+                label:'Details',
+                icon:'eye',
+                action:function(event, table, dt, node, row, data){
+                    self._builder.Widget('task',{data: data.id}).view();
+                }
+            },
+            archive:{
+                label:'Archive',
+                icon:'archive',
+                action:function(event, table, dt, node, row, data){
+                    self._builder.Widget('task',{data: data.id}).archive(function(response){
+                        self.datatable().delete(row);
+                    });
+                }
+            },
+        };
+
+        // Datatable Properties
+        this._properties.datatable = {};
+
+        // Responsive
+        this._properties.datatable.responsive = {
+            breakpoints: [
+                { name: 'xl', width: Infinity },
+                { name: 'lg', width: 1400 },
+                { name: 'md', width: 992 },
+                { name: 'sm', width: 768 },
+                { name: 'xs', width: 576 },
+                { name: 'xxs', width: 0 }
+            ]
+        };
+
+        // Set Buttons
+        this._properties.datatable.buttons = [];
+
+        // Set Column Definitions
+        this._properties.datatable.columnDefs = [
+            {
+                targets: 0,
+                visible: false,
+                title: builder.Locale.get('ID'),
+                name: 'id',
+                data: 'id',
+            },
+            {
+                targets: 1,
+                visible: false,
+                title: builder.Locale.get('Category'),
+                className: 'min-md',
+                name: 'category',
+                data: 'category',
+                defaultContent: '',
+                responsivePriority: 100,
+            },
+            {
+                targets: 2,
+                visible: true,
+                title: builder.Locale.get('Label'),
+                className: 'all',
+                name: 'label',
+                data: 'label',
+                width: '50%',
+                defaultContent: '',
+                responsivePriority: 1,
+                render: function(data, type, row, meta) {
+                    return self._builder.Render('task.label', data, row);
+                },
+            },
+            {
+                targets: 3,
+                visible: false,
+                title: builder.Locale.get('Status'),
+                className: 'min-md',
+                name: 'status',
+                data: 'progress',
+                defaultContent: '',
+                responsivePriority: 200,
+                render: function(data, type, row, meta) {
+                    return self._builder.Render('task.progress', data, row);
+                },
+            },
+            {
+                targets: 4,
+                visible: true,
+                title: builder.Locale.get('Task'),
+                className: 'min-md',
+                name: 'task',
+                data: 'process',
+                defaultContent: '',
+                responsivePriority: 10,
+                render: function(data, type, row, meta) {
+                    return self._builder.Render('task.process', data, row);
+                },
+            },
+            {
+                targets: 5,
+                visible: true,
+                title: builder.Locale.get('Priority'),
+                className: 'min-md',
+                name: 'priority',
+                data: 'priority',
+                defaultContent: 0,
+                responsivePriority: 20,
+                render: function(data, type, row, meta) {
+                    return self._builder.Render('task.priority', data, row);
+                },
+            },
+            {
+                targets: 6,
+                visible: true,
+                title: builder.Locale.get('Assigned To'),
+                className: 'min-md',
+                name: 'assignedTo',
+                data: 'assignedTo.username',
+                defaultContent: '',
+                responsivePriority: 30,
+                render: function(data, type, row, meta) {
+                    return self._builder.Render('task.assignedTo.username', data, row);
+                },
+            },
+            {
+                targets: 7,
+                visible: true,
+                title: builder.Locale.get('Due'),
+                className: 'min-md',
+                name: 'due',
+                data: 'due',
+                defaultContent: '',
+                responsivePriority: 40,
+                render: function(data, type, row, meta) {
+                    return self._builder.Render('task.due', data, row);
+                },
+            },
+        ];
+
+        // Set Column Order
+        this._properties.datatable.order = [[7, 'asc']];
+
+        // Setup Placeholder
+        this._properties.datatable.initComplete = function(param) {
+            $(param.nTableWrapper).find('.dataTables_filter input').attr({
+                'placeholder': builder.Locale.get('Search...'),
+            });
+        };
+
+        // Add Row Double Click Event
+        this._properties.dblclick = function(event, table, dt, node, data){
+            self._builder.Widget('task',{data: data.id}).view();
+        };
+    }
+
+    datatable(datatable = null){
+        if(datatable){
+            this._datatable = datatable;
+        }
+        return this._datatable;
+    }
+
+    load(records = null){
+
+        // Set Self
+        const self = this;
+
+        // Check if records are provided
+        if(records !== null && Object.entries(records).length > 0){
+
+            // Loop through the records
+            for(const [key, record] of Object.entries(records)){
+                this.add(record);
+            }
+            return this;
+        }
+
+        // Retrieve Followups
+        $.ajax({
+            url: '/api/tasks/fetchAll',
+            headers: {'X-CSRF-Authorization': CSRF_KEY},
+            type: 'POST',dataType: 'json',
+            data: {
+                conditions: this._properties.conditions,
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching data:', error);
+            },
+            success: function(response) {
+
+                // Add Feed Posts
+                for(const [key, record] of Object.entries(response.records)){
+                    self.add(record);
+                }
+            }
+        });
+
+        return this;
+    }
+
+    start(){
+
+        // Set Self
+        const self = this;
+
+        // Check if the interval is already set
+        if(this._interval){
+            console.warn('Interval is already set, stopping the previous one.');
+            clearInterval(this._interval);
+        }
+
+        // Set the interval to check for changes
+        this._interval = setInterval(function(){
+            self.load();
+        }, this._properties.interval);
+    }
+
+    stop(){
+        // Check if the interval is set
+        if(this._interval){
+            clearInterval(this._interval);
+            this._interval = null;
+        } else {
+            console.warn('No interval is currently set.');
+        }
+    }
+
+    add(record){
+
+        // Add Record
+        this.datatable().add(record);
+
+        return this;
+    }
+});
+builder.add('widgets','widgetTasks', class extends builder.ComponentClass {
+
+    _init(){
+        this._properties = {
+            class: {
+                component: null,
+            },
+            data: null,
+            title: null,
+            conditions: [],
+            interval: 10000,
+            autoStart: false,
+            callback: {},
+        };
+        this._widget = null;
+        this._card = null;
+    }
+
+    _create(){
+
+        // Set Self
+        const self = this;
+
+        // Create Component
+        this._component = $(document.createElement('div')).attr({
+            'id': 'tasks' + this._id,
+            'class': 'widgetTasks',
+        });
+        this._component.id = this._component.attr('id');
+
+        // Add class to the component
+        if(this._properties.class.component){
+            this._component.addClass(this._properties.class.component);
+        }
+
+        // Create the Card
+        this._builder.Component(
+            'card',
+            this._component,
+            {
+                icon: "list-task",
+                title: this._properties.title,
+            },
+            function(card, component){
+
+                // Set _card
+                self.card(card);
+
+                // Styling
+                component.body.addClass('p-0');
+
+                // Create the Widget
+                self._builder.Widget(
+                    'tasks',
+                    self.card()._component.body,
+                    self._properties,
+                    function(widget, component){
+
+                        // Set _widget
+                        self.widget(widget);
+                    },
+                );
+            },
+        );
+    }
+
+    widget(widget = null){
+        if(widget){
+            this._widget = widget;
+        }
+        return this._widget;
+    }
+
+    card(card = null){
+        if(card){
+            this._card = card;
+        }
+        return this._card;
+    }
+});
