@@ -1054,7 +1054,7 @@ function dashboard_widget_tableTasksCategorized(value = null){
         'widgetTasks',
         container,
         {
-            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            title: builder.Locale.get(dashboard_meta_tableTasksCategorized('label')),
             autoStart:true,
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
@@ -1091,7 +1091,7 @@ function dashboard_widget_tableDailyTasks(value = null){
         'widgetTasks',
         container,
         {
-            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            title: builder.Locale.get(dashboard_meta_tableDailyTasks('label')),
             autoStart:true,
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
@@ -1120,7 +1120,7 @@ function dashboard_widget_tableDailyTasksCategorized(value = null){
         'widgetTasks',
         container,
         {
-            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            title: builder.Locale.get(dashboard_meta_tableDailyTasksCategorized('label')),
             autoStart:true,
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
@@ -1158,7 +1158,7 @@ function dashboard_widget_tableMyTasks(value = null){
         'widgetTasks',
         container,
         {
-            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            title: builder.Locale.get(dashboard_meta_tableMyTasks('label')),
             autoStart:true,
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
@@ -1187,7 +1187,7 @@ function dashboard_widget_tableMyTasksCategorized(value = null){
         'widgetTasks',
         container,
         {
-            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            title: builder.Locale.get(dashboard_meta_tableMyTasksCategorized('label')),
             autoStart:true,
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
@@ -1225,7 +1225,7 @@ function dashboard_widget_tableMyDailyTasks(value = null){
         'widgetTasks',
         container,
         {
-            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            title: builder.Locale.get(dashboard_meta_tableMyDailyTasks('label')),
             autoStart:true,
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
@@ -1255,7 +1255,7 @@ function dashboard_widget_tableMyDailyTasksCategorized(value = null){
         'widgetTasks',
         container,
         {
-            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            title: builder.Locale.get(dashboard_meta_tableMyDailyTasksCategorized('label')),
             autoStart:true,
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
