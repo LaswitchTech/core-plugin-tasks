@@ -45,11 +45,26 @@ builder.add('renderers', 'task.due', function(value, data, type){
 
     // Check for required data
     if(typeof data.task !== 'undefined' || typeof data.due !== 'undefined'){
+
+        // Handle sorting
+        // console.log(type);
+        if (type === 'sort') {
+            return value ? Date.parse(value) : Number.MAX_SAFE_INTEGER;
+        }
+
+        // Compare date to now and set background color
+        var bg = 'rounded px-2 py-1';
+        if(moment(value).isBefore(moment())){
+            bg += ' text-bg-danger';
+        } else if(moment(value).format('YYYY-MM-DD') == moment().format('YYYY-MM-DD')){
+            bg += ' text-bg-warning';
+        }
+
+        // Setup tooltip and timeago
         setInterval(function(){
             $('[data-type="due"]:not(.rendered)').each(function(){
                 const tooltip = new Date($(this).find('time').attr('datetime') ?? new Date().toISOString());
                 $(this).attr({
-                    'title': tooltip.toLocaleString(),
                     'data-bs-toggle': 'tooltip',
                     'data-bs-title': tooltip.toLocaleString(),
                 }).addClass('rendered');
@@ -57,7 +72,9 @@ builder.add('renderers', 'task.due', function(value, data, type){
                 $(this).find('time').timeago();
             });
         },100);
-        return '<div data-type="due"><i class="bi bi-clock me-1"></i><time datetime="'+value+'"></time></div>';
+
+        // Return the formatted due date
+        return '<div data-type="due" class="'+bg+'"><i class="bi bi-clock me-1"></i><time datetime="'+value+'"></time></div>';
     }
     return '<div>' + value + '</div>';
 })
