@@ -381,6 +381,9 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                                                     });
                                                 }
 
+                                                // Initialize the tabs
+                                                card.tabs = {};
+
                                                 // Notes
                                                 if(self._properties.extensions.includes('notes')){
                                                     tabs.add(
@@ -390,42 +393,25 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                                                             label: builder.Locale.get("Notes"),
                                                         },
                                                         function(tab,nav){
-                                                            card.notes = tab;
-                                                            builder.Widget('notes',tab,{data: response.dependencies.notes ?? {},targetTable: response.record.root.targetTable,targetId: response.record.root.targetId})
+                                                            card.tabs.notes = tab;
+                                                            self._builder.Widget('notes',tab,{data: response.dependencies.notes ?? {},targetTable: response.record.root.targetTable,targetId: response.record.root.targetId,autoStart: true})
                                                         },
                                                     );
                                                 }
 
                                                 // Event
                                                 if(self._properties.extensions.includes('event')){
+
+                                                    // Add the Event tab
                                                     tabs.add(
-                                                        'activities',
+                                                        'event',
                                                         {
                                                             icon: "activity",
                                                             label: builder.Locale.get("Activity"),
                                                         },
                                                         function(tab,nav){
-                                                            tab.addClass('px-4 py-3');
-                                                            card.activities = tab;
-                                                            EventFeed(response.dependencies.event ?? {}, tab);
-                                                        },
-                                                    );
-                                                }
-
-                                                // Relationship
-                                                if(self._properties.extensions.includes('relationship')){
-                                                    tabs.add(
-                                                        'related',
-                                                        {
-                                                            icon: "diagram-2",
-                                                            label: builder.Locale.get("Related"),
-                                                        },
-                                                        function(tab,nav){
-                                                            tab.addClass('px-4 py-3');
-                                                            card.related = tab;
-                                                            RelationshipFeed(response.dependencies.relationship, tab, response.record.root.targetTable, response.record.root.targetId, function(feed){
-                                                                card.related.feed = feed;
-                                                            });
+                                                            card.tabs.event = tab;
+                                                            self._builder.Widget("events",tab,{data: response.dependencies.event ?? {},targetTable: 'tasks',targetId: response.record.id});
                                                         },
                                                     );
                                                 }
@@ -446,6 +432,13 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                                                             widget.controls().appendTo(component.steps)
                                                         }
                                                     );
+                                                }
+
+                                                // Relationship
+                                                if(self._properties.extensions.includes('relationship')){
+
+                                                    // Create the Relationship widget
+                                                    self._builder.Widget("related",tabs._content.details,{data: response.dependencies.relationship ?? {},targetTable: 'tasks',targetId: response.record.id});
                                                 }
                                             },
                                         );
