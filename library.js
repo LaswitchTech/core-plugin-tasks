@@ -329,7 +329,7 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                                                     card._component.vcard.body.info.container.name = $(document.createElement('div')).addClass('d-flex align-items-center gap-2 flex-wrap').text(response.record.target.vcard.name).appendTo(card._component.vcard.body.info.container);
                                                     card._component.vcard.body.info.container.title = $(document.createElement('div')).addClass('small text-secondary').text(response.record.target.vcard.title ?? '').appendTo(card._component.vcard.body.info.container);
                                                     card._component.vcard.body.badges = $(document.createElement('div')).addClass('mt-2 d-flex flex-wrap gap-2').appendTo(card._component.vcard.body);
-                                                    for(const [key, role] of Object.entries(JSON.parse(response.record.target.vcard.role || {}))){
+                                                    for(const [key, role] of Object.entries(JSON.parse(response.record.target.vcard.role || '[]'))){
                                                         $(document.createElement('span')).addClass('badge text-bg-light border').text(role).appendTo(card._component.vcard.body.badges);
                                                     }
 
