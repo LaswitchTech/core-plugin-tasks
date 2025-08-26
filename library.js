@@ -1,3 +1,9 @@
+builder.add('renderers', 'task.label', function(value, data){
+    if(typeof data.task !== 'undefined' || typeof data.label !== 'undefined'){
+        return '<div>' + builder.Parser.parse(value) + '</div>';
+    }
+    return '<div>' + value + '</div>';
+})
 builder.add('renderers', 'task.progress', function(value, data){
     if(typeof data.task !== 'undefined'){
         var color = (data.task.process === null || typeof data.task.process[value] === "undefined") ? 'success' : data.task.process[value].color;
