@@ -5,16 +5,17 @@ builder.add('renderers', 'task.label', function(value, data){
     return '<div>' + value + '</div>';
 })
 builder.add('renderers', 'task.progress', function(value, data){
-    if(typeof data.task !== 'undefined'){
-        var color = (data.task.process === null || typeof data.task.process[value] === "undefined") ? 'success' : data.task.process[value].color;
-        var icon = (data.task.process === null || typeof data.task.process[value] === "undefined") ? 'asterisk' : data.task.process[value].icon;
-        var name = (data.task.process === null || typeof data.task.process[value] === "undefined") ? builder.Locale.get('New') : data.task.process[value].name;
-        return '<div><h5><span class="badge text-bg-'+color+'" data-type="status" data-task="'+data.task.id+'"><i class="me-1 bi bi-'+icon+'"></i>'+name+'</span></h5></div>';
+    if(typeof data.task !== 'undefined' || typeof data.progress !== 'undefined'){
+        var process = (typeof data.task !== 'undefined') ? data.task.process : data.process;
+        var color = (process === null || typeof process[value] === "undefined") ? 'success' : process[value].color;
+        var icon = (process === null || typeof process[value] === "undefined") ? 'asterisk' : process[value].icon;
+        var name = (process === null || typeof process[value] === "undefined") ? builder.Locale.get('New') : process[value].name;
+        return '<div><h5><span class="badge text-bg-'+color+'"><i class="me-1 bi bi-'+icon+'"></i>'+name+'</span></h5></div>';
     }
     return '<div>' + value + '</div>';
 })
 builder.add('renderers', 'task.process', function(value, data){
-    if(typeof data.task !== 'undefined'){
+    if(typeof data.task !== 'undefined' || typeof data.process !== 'undefined'){
         for(const [progress, step] of Object.entries(value)){
             for(const [order, task] of Object.entries(step.tasks)){
                 if(!task.isCompleted){
@@ -26,29 +27,28 @@ builder.add('renderers', 'task.process', function(value, data){
     return '<div>' + value + '</div>';
 })
 builder.add('renderers', 'task.priority', function(value, data){
-    if(typeof data.task !== 'undefined'){
+    if(typeof data.task !== 'undefined' || typeof data.priority !== 'undefined'){
         let color = ['secondary','primary','warning','orange','danger'];
         let name = ['Low','Normal','High','Urgent','Critical'];
         let icon = ['exclamation-triangle','info-circle','exclamation-circle','exclamation-diamond','exclamation-square'];
-        return '<div><h5><span class="badge text-bg-'+color[value]+'" data-type="priority" data-task="'+data.task.id+'"><i class="me-1 bi bi-'+icon[value]+'"></i>'+builder.Locale.get(name[value])+'</span></h5></div>';
+        return '<div><h5><span class="badge text-bg-'+color[value]+'"><i class="me-1 bi bi-'+icon[value]+'"></i>'+builder.Locale.get(name[value])+'</span></h5></div>';
     }
     return '<div>' + value + '</div>';
 })
 builder.add('renderers', 'task.assignedTo.username', function(value, data){
-    if(typeof data.task !== 'undefined'){
+    if(typeof data.task !== 'undefined' || typeof data.assignedTo !== 'undefined'){
         return '<div><img class="avatar" alt="'+value+'" src="/avatar?username='+value+'"><span>'+(value ?? builder.Locale.get('Unassigned'))+'</span></div>';
     }
     return '<div>' + value + '</div>';
 })
 builder.add('renderers', 'task.due', function(value, data){
-    if(typeof data.task !== 'undefined'){
+    if(typeof data.task !== 'undefined' || typeof data.due !== 'undefined'){
         setInterval(function(){
             $('[data-type="due"]:not(.rendered)').each(function(){
                 const tooltip = new Date($(this).find('time').attr('datetime') ?? new Date().toISOString());
                 $(this).attr({
                     'title': tooltip.toLocaleString(),
                     'data-bs-toggle': 'tooltip',
-                    'title': tooltip.toLocaleString(),
                     'data-bs-title': tooltip.toLocaleString(),
                 }).addClass('rendered');
                 new bootstrap.Tooltip($(this));
