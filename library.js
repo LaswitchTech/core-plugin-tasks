@@ -1,10 +1,10 @@
-builder.add('renderers', 'task.label', function(value, data){
+builder.add('renderers', 'task.label', function(value, data, type){
     if(typeof data.task !== 'undefined' || typeof data.label !== 'undefined'){
         return '<div>' + builder.Parser.parse(value) + '</div>';
     }
     return '<div>' + value + '</div>';
 })
-builder.add('renderers', 'task.progress', function(value, data){
+builder.add('renderers', 'task.progress', function(value, data, type){
     if(typeof data.task !== 'undefined' || typeof data.progress !== 'undefined'){
         var process = (typeof data.task !== 'undefined') ? data.task.process : data.process;
         var color = (process === null || typeof process[value] === "undefined") ? 'success' : process[value].color;
@@ -14,7 +14,7 @@ builder.add('renderers', 'task.progress', function(value, data){
     }
     return '<div>' + value + '</div>';
 })
-builder.add('renderers', 'task.process', function(value, data){
+builder.add('renderers', 'task.process', function(value, data, type){
     if(typeof data.task !== 'undefined' || typeof data.process !== 'undefined'){
         for(const [progress, step] of Object.entries(value)){
             for(const [order, task] of Object.entries(step.tasks)){
@@ -26,7 +26,7 @@ builder.add('renderers', 'task.process', function(value, data){
     }
     return '<div>' + value + '</div>';
 })
-builder.add('renderers', 'task.priority', function(value, data){
+builder.add('renderers', 'task.priority', function(value, data, type){
     if(typeof data.task !== 'undefined' || typeof data.priority !== 'undefined'){
         let color = ['secondary','primary','warning','orange','danger'];
         let name = ['Low','Normal','High','Urgent','Critical'];
@@ -35,13 +35,15 @@ builder.add('renderers', 'task.priority', function(value, data){
     }
     return '<div>' + value + '</div>';
 })
-builder.add('renderers', 'task.assignedTo.username', function(value, data){
+builder.add('renderers', 'task.assignedTo.username', function(value, data, type){
     if(typeof data.task !== 'undefined' || typeof data.assignedTo !== 'undefined'){
         return '<div><img class="avatar" alt="'+value+'" src="/avatar?username='+value+'"><span>'+(value ?? builder.Locale.get('Unassigned'))+'</span></div>';
     }
     return '<div>' + value + '</div>';
 })
-builder.add('renderers', 'task.due', function(value, data){
+builder.add('renderers', 'task.due', function(value, data, type){
+
+    // Check for required data
     if(typeof data.task !== 'undefined' || typeof data.due !== 'undefined'){
         setInterval(function(){
             $('[data-type="due"]:not(.rendered)').each(function(){
@@ -1135,7 +1137,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
                 defaultContent: '',
                 responsivePriority: 1,
                 render: function(data, type, row, meta) {
-                    return self._builder.Render('task.label', data, row);
+                    return self._builder.Render('task.label', data, row, type);
                 },
             },
             {
@@ -1148,7 +1150,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
                 defaultContent: '',
                 responsivePriority: 200,
                 render: function(data, type, row, meta) {
-                    return self._builder.Render('task.progress', data, row);
+                    return self._builder.Render('task.progress', data, row, type);
                 },
             },
             {
@@ -1161,7 +1163,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
                 defaultContent: '',
                 responsivePriority: 10,
                 render: function(data, type, row, meta) {
-                    return self._builder.Render('task.process', data, row);
+                    return self._builder.Render('task.process', data, row, type);
                 },
             },
             {
@@ -1174,7 +1176,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
                 defaultContent: 0,
                 responsivePriority: 20,
                 render: function(data, type, row, meta) {
-                    return self._builder.Render('task.priority', data, row);
+                    return self._builder.Render('task.priority', data, row, type);
                 },
             },
             {
@@ -1187,7 +1189,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
                 defaultContent: '',
                 responsivePriority: 30,
                 render: function(data, type, row, meta) {
-                    return self._builder.Render('task.assignedTo.username', data, row);
+                    return self._builder.Render('task.assignedTo.username', data, row, type);
                 },
             },
             {
@@ -1200,7 +1202,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
                 defaultContent: '',
                 responsivePriority: 40,
                 render: function(data, type, row, meta) {
-                    return self._builder.Render('task.due', data, row);
+                    return self._builder.Render('task.due', data, row, type);
                 },
             },
         ];
