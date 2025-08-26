@@ -1022,32 +1022,19 @@ function process_meta_TaskDeactivate(key = null){
 // Table Widget for Dashboard - All Tasks
 function dashboard_widget_tableTasks(value = null){
     var container = $(document.createElement('div'));
-    $.ajax({
-        url: '/api/tasks/fetchAll',
-        headers: {'X-CSRF-Authorization': CSRF_KEY},
-        type: 'POST',dataType: 'json',
-        data: {
-            conditions: [
+    builder.Widget(
+        'widgetTasks',
+        container,
+        {
+            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            autoStart:true,
+            conditions:[
                 {key: 'isActive', operator: '=', value: 1},
                 {key: 'isArchived', operator: '=', value: 0},
                 {key: 'isCompleted', operator: '=', value: 0},
-            ]
+            ],
         },
-        success: function(response) {
-            builder.Component(
-                "card",
-                container,
-                {
-                    icon: "list-task",
-                    title: builder.Locale.get(dashboard_meta_tableTasks('label')),
-                },
-                function(card,component){
-                    component.body.addClass('p-0');
-                    TaskTable(component.body, response.records, true);
-                },
-            );
-        },
-    });
+    );
     return container;
 }
 function dashboard_meta_tableTasks(key = null){
@@ -1063,33 +1050,20 @@ function dashboard_meta_tableTasks(key = null){
 // Table Widget for Dashboard - All Tasks Categories
 function dashboard_widget_tableTasksCategorized(value = null){
     var container = $(document.createElement('div'));
-    $.ajax({
-        url: '/api/tasks/fetchAll',
-        headers: {'X-CSRF-Authorization': CSRF_KEY},
-        type: 'POST',dataType: 'json',
-        data: {
-            conditions: [
-                {key: 'category', operator: '=', value: value},
+    builder.Widget(
+        'widgetTasks',
+        container,
+        {
+            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            autoStart:true,
+            conditions:[
                 {key: 'isActive', operator: '=', value: 1},
                 {key: 'isArchived', operator: '=', value: 0},
                 {key: 'isCompleted', operator: '=', value: 0},
-            ]
+                {key: 'category', operator: '=', value: value},
+            ],
         },
-        success: function(response) {
-            builder.Component(
-                "card",
-                container,
-                {
-                    icon: "list-task",
-                    title: builder.Locale.get(dashboard_meta_tableTasksCategorized('label').replace('Categorized',value)),
-                },
-                function(card,component){
-                    component.body.addClass('p-0');
-                    TaskTable(component.body, response.records, true);
-                },
-            );
-        },
-    });
+    );
     return container;
 }
 function dashboard_meta_tableTasksCategorized(key = null){
@@ -1113,33 +1087,20 @@ function dashboard_meta_tableTasksCategorized(key = null){
 // Table Widget for Dashboard - All Daily Tasks
 function dashboard_widget_tableDailyTasks(value = null){
     var container = $(document.createElement('div'));
-    $.ajax({
-        url: '/api/tasks/fetchAll',
-        headers: {'X-CSRF-Authorization': CSRF_KEY},
-        type: 'POST',dataType: 'json',
-        data: {
-            conditions: [
-                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
+    builder.Widget(
+        'widgetTasks',
+        container,
+        {
+            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            autoStart:true,
+            conditions:[
                 {key: 'isActive', operator: '=', value: 1},
                 {key: 'isArchived', operator: '=', value: 0},
                 {key: 'isCompleted', operator: '=', value: 0},
-            ]
+                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
+            ],
         },
-        success: function(response) {
-            builder.Component(
-                "card",
-                container,
-                {
-                    icon: "list-task",
-                    title: builder.Locale.get(dashboard_meta_tableDailyTasks('label')),
-                },
-                function(card,component){
-                    component.body.addClass('p-0');
-                    TaskTable(component.body, response.records);
-                },
-            );
-        },
-    });
+    );
     return container;
 }
 function dashboard_meta_tableDailyTasks(key = null){
@@ -1155,34 +1116,21 @@ function dashboard_meta_tableDailyTasks(key = null){
 // Table Widget for Dashboard - All Daily Tasks Categorized
 function dashboard_widget_tableDailyTasksCategorized(value = null){
     var container = $(document.createElement('div'));
-    $.ajax({
-        url: '/api/tasks/fetchAll',
-        headers: {'X-CSRF-Authorization': CSRF_KEY},
-        type: 'POST',dataType: 'json',
-        data: {
-            conditions: [
-                {key: 'category', operator: '=', value: value},
-                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
+    builder.Widget(
+        'widgetTasks',
+        container,
+        {
+            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            autoStart:true,
+            conditions:[
                 {key: 'isActive', operator: '=', value: 1},
                 {key: 'isArchived', operator: '=', value: 0},
                 {key: 'isCompleted', operator: '=', value: 0},
-            ]
+                {key: 'category', operator: '=', value: value},
+                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
+            ],
         },
-        success: function(response) {
-            builder.Component(
-                "card",
-                container,
-                {
-                    icon: "list-task",
-                    title: builder.Locale.get(dashboard_meta_tableDailyTasksCategorized('label').replace('Categorized',value)),
-                },
-                function(card,component){
-                    component.body.addClass('p-0');
-                    TaskTable(component.body, response.records);
-                },
-            );
-        },
-    });
+    );
     return container;
 }
 function dashboard_meta_tableDailyTasksCategorized(key = null){
@@ -1206,33 +1154,20 @@ function dashboard_meta_tableDailyTasksCategorized(key = null){
 // Table Widget for Dashboard - All My Tasks
 function dashboard_widget_tableMyTasks(value = null){
     var container = $(document.createElement('div'));
-    $.ajax({
-        url: '/api/tasks/fetchAll',
-        headers: {'X-CSRF-Authorization': CSRF_KEY},
-        type: 'POST',dataType: 'json',
-        data: {
-            conditions: [
-                {key: 'assignedTo', operator: '=', value: USER_ID},
+    builder.Widget(
+        'widgetTasks',
+        container,
+        {
+            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            autoStart:true,
+            conditions:[
                 {key: 'isActive', operator: '=', value: 1},
                 {key: 'isArchived', operator: '=', value: 0},
                 {key: 'isCompleted', operator: '=', value: 0},
-            ]
+                {key: 'assignedTo', operator: '=', value: USER_ID},
+            ],
         },
-        success: function(response) {
-            builder.Component(
-                "card",
-                container,
-                {
-                    icon: "list-task",
-                    title: builder.Locale.get(dashboard_meta_tableMyTasks('label')),
-                },
-                function(card,component){
-                    component.body.addClass('p-0');
-                    TaskTable(component.body, response.records);
-                },
-            );
-        },
-    });
+    );
     return container;
 }
 function dashboard_meta_tableMyTasks(key = null){
@@ -1248,34 +1183,21 @@ function dashboard_meta_tableMyTasks(key = null){
 // Table Widget for Dashboard - All My Tasks Categorized
 function dashboard_widget_tableMyTasksCategorized(value = null){
     var container = $(document.createElement('div'));
-    $.ajax({
-        url: '/api/tasks/fetchAll',
-        headers: {'X-CSRF-Authorization': CSRF_KEY},
-        type: 'POST',dataType: 'json',
-        data: {
-            conditions: [
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-                {key: 'category', operator: '=', value: value},
+    builder.Widget(
+        'widgetTasks',
+        container,
+        {
+            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            autoStart:true,
+            conditions:[
                 {key: 'isActive', operator: '=', value: 1},
                 {key: 'isArchived', operator: '=', value: 0},
                 {key: 'isCompleted', operator: '=', value: 0},
-            ]
+                {key: 'category', operator: '=', value: value},
+                {key: 'assignedTo', operator: '=', value: USER_ID},
+            ],
         },
-        success: function(response) {
-            builder.Component(
-                "card",
-                container,
-                {
-                    icon: "list-task",
-                    title: builder.Locale.get(dashboard_meta_tableMyTasksCategorized('label').replace('Categorized',value)),
-                },
-                function(card,component){
-                    component.body.addClass('p-0');
-                    TaskTable(component.body, response.records);
-                },
-            );
-        },
-    });
+    );
     return container;
 }
 function dashboard_meta_tableMyTasksCategorized(key = null){
@@ -1299,34 +1221,21 @@ function dashboard_meta_tableMyTasksCategorized(key = null){
 // Table Widget for Dashboard - All My Daily Tasks
 function dashboard_widget_tableMyDailyTasks(value = null){
     var container = $(document.createElement('div'));
-    $.ajax({
-        url: '/api/tasks/fetchAll',
-        headers: {'X-CSRF-Authorization': CSRF_KEY},
-        type: 'POST',dataType: 'json',
-        data: {
-            conditions: [
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
+    builder.Widget(
+        'widgetTasks',
+        container,
+        {
+            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            autoStart:true,
+            conditions:[
                 {key: 'isActive', operator: '=', value: 1},
                 {key: 'isArchived', operator: '=', value: 0},
                 {key: 'isCompleted', operator: '=', value: 0},
-            ]
+                {key: 'assignedTo', operator: '=', value: USER_ID},
+                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
+            ],
         },
-        success: function(response) {
-            builder.Component(
-                "card",
-                container,
-                {
-                    icon: "list-task",
-                    title: builder.Locale.get(dashboard_meta_tableMyDailyTasks('label')),
-                },
-                function(card,component){
-                    component.body.addClass('p-0');
-                    TaskTable(component.body, response.records);
-                },
-            );
-        },
-    });
+    );
     return container;
 }
 function dashboard_meta_tableMyDailyTasks(key = null){
@@ -1342,35 +1251,22 @@ function dashboard_meta_tableMyDailyTasks(key = null){
 // Table Widget for Dashboard - All My Tasks Categorized
 function dashboard_widget_tableMyDailyTasksCategorized(value = null){
     var container = $(document.createElement('div'));
-    $.ajax({
-        url: '/api/tasks/fetchAll',
-        headers: {'X-CSRF-Authorization': CSRF_KEY},
-        type: 'POST',dataType: 'json',
-        data: {
-            conditions: [
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-                {key: 'category', operator: '=', value: value},
-                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
+    builder.Widget(
+        'widgetTasks',
+        container,
+        {
+            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
+            autoStart:true,
+            conditions:[
                 {key: 'isActive', operator: '=', value: 1},
                 {key: 'isArchived', operator: '=', value: 0},
                 {key: 'isCompleted', operator: '=', value: 0},
-            ]
+                {key: 'category', operator: '=', value: value},
+                {key: 'assignedTo', operator: '=', value: USER_ID},
+                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
+            ],
         },
-        success: function(response) {
-            builder.Component(
-                "card",
-                container,
-                {
-                    icon: "list-task",
-                    title: builder.Locale.get(dashboard_meta_tableMyDailyTasksCategorized('label').replace('Categorized',value)),
-                },
-                function(card,component){
-                    component.body.addClass('p-0');
-                    TaskTable(component.body, response.records);
-                },
-            );
-        },
-    });
+    );
     return container;
 }
 function dashboard_meta_tableMyDailyTasksCategorized(key = null){
