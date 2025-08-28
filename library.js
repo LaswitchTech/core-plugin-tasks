@@ -341,7 +341,7 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                                                     card._component.vcard.body.info = $(document.createElement('div')).addClass('d-flex align-items-center gap-3').appendTo(card._component.vcard.body);
                                                     card._component.vcard.body.info.avatar = $(document.createElement('img')).attr({
                                                         'class':'avatar rounded-circle border border-3',
-                                                        'src': '/avatar?username=' + (response.record.target.vcard.email ?? 'unknown'),
+                                                        'src': '/avatar?id=' + response.record.target.vcard.id,
                                                         'alt': (response.record.target.vcard.name ?? 'Unknown').substring(0,2).toUpperCase(),
                                                         'style': 'width: 64px; height: 64px;',
                                                     }).appendTo(card._component.vcard.body.info);
