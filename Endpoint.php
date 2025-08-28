@@ -18,6 +18,18 @@ class TasksEndpoint extends BaseEndpoint {
 
         // Set Properties
         $this->required = ['category','label','targetTable','targetId'];
+
+        // Retrieve the namespace
+        $namespace = $this->Request->getNamespace();
+
+        // Set Properties
+        switch($namespace){
+            case "/tasks/upgrade":
+            case "/tasks/promote":
+                $this->Public = false;
+                $this->Level = 3;
+                break;
+        }
     }
 
     /**
@@ -469,6 +481,88 @@ class TasksEndpoint extends BaseEndpoint {
                     }
                 } else {
                     $message = ["status" => 404, "message" => "Not Found", "data" => "Could not find the requested process."];
+                }
+            } else {
+                $message = ["status" => 405, "message" => "Method Not Allowed", "data" => "The method is not allowed for the requested URL."];
+            }
+        }
+
+        // Return the message
+        return $message;
+    }
+
+    /**
+     * Promote tasks to a new stage
+     */
+    public function promoteAction(): array
+    {
+
+        // Set the default message
+        $message = ["status" => 200, "message" => "OK", "data" => []];
+
+        // Retrieve the tasks's id and new stage
+        $id = $this->Request->getParams('REQUEST','id');
+        $progress = $this->Request->getParams('REQUEST','progress');
+
+        // Check if the parameter exists
+        if(empty($id) || is_null($id)){
+            $message = ["status" => 400, "message" => "Bad Request", "data" => "The 'id' parameter is required."];
+        }
+        if(empty($progress) || is_null($progress)){
+            $message = ["status" => 400, "message" => "Bad Request", "data" => "The 'progress' parameter is required."];
+        }
+
+        // Check if the task is accessible
+        if($message['status'] == 200){
+
+            // Check the request method
+            if($this->Request->getMethod() == "POST"){
+
+                // Retrieve the incomplete tasks of the specified category
+                $task = $this->Model->Tasks->fetch($id);
+
+                // Check if the task exists
+                if(!empty($task)){
+
+                    // Update the progress
+                    $task['progress'] = (int)$progress;
+                    $stepsLength = count($task['process']);
+                    $task['progress'] = ($task['progress'] > $stepsLength) ? $stepsLength : $task['progress'];
+
+                    // Upgrade the process
+                    foreach($task['process'] as $stageId => $stage){
+
+                        // Break if the stage ID is higher than the progress
+                        if($stageId >= $task['progress']){
+
+                            // Mark the tasks as incompleted
+                            foreach($task['process'][$stageId]['tasks'] as $taskId => $step){
+
+                                // Mark the task as incompleted
+                                $task['process'][$stageId]['tasks'][$taskId]['isCompleted'] = false;
+                            }
+
+                            // Mark the stage as incompleted
+                            $task['process'][$stageId]['isCompleted'] = false;
+                        } else {
+
+                            // Mark the tasks as completed
+                            foreach($task['process'][$stageId]['tasks'] as $taskId => $step){
+
+                                // Mark the task as completed
+                                $task['process'][$stageId]['tasks'][$taskId]['isCompleted'] = true;
+                            }
+
+                            // Mark the stage as completed
+                            $task['process'][$stageId]['isCompleted'] = true;
+                        }
+                    }
+
+                    // Update the task in the database
+                    $message['data']['affectedRows'] = $this->Model->Tasks->update($task['id'], ['process' => json_encode($task['process']), 'progress' => $task['progress']]);
+                    $message['data']['record'] = $this->Model->Tasks->fetch($task['id']);
+                } else {
+                    $message = ["status" => 404, "message" => "Not Found", "data" => "Could not find the requested task."];
                 }
             } else {
                 $message = ["status" => 405, "message" => "Method Not Allowed", "data" => "The method is not allowed for the requested URL."];
