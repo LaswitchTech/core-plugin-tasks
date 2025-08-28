@@ -1,10 +1,10 @@
-builder.add('renderers', 'task.label', function(value, data){
+builder.add('renderers', 'task.label', function(value, data, type){
     if(typeof data.task !== 'undefined' || typeof data.label !== 'undefined'){
         return '<div>' + builder.Parser.parse(value) + '</div>';
     }
     return '<div>' + value + '</div>';
 })
-builder.add('renderers', 'task.progress', function(value, data){
+builder.add('renderers', 'task.progress', function(value, data, type){
     if(typeof data.task !== 'undefined' || typeof data.progress !== 'undefined'){
         var process = (typeof data.task !== 'undefined') ? data.task.process : data.process;
         var color = (process === null || typeof process[value] === "undefined") ? 'success' : process[value].color;
@@ -14,7 +14,7 @@ builder.add('renderers', 'task.progress', function(value, data){
     }
     return '<div>' + value + '</div>';
 })
-builder.add('renderers', 'task.process', function(value, data){
+builder.add('renderers', 'task.process', function(value, data, type){
     if(typeof data.task !== 'undefined' || typeof data.process !== 'undefined'){
         for(const [progress, step] of Object.entries(value)){
             for(const [order, task] of Object.entries(step.tasks)){
@@ -26,7 +26,7 @@ builder.add('renderers', 'task.process', function(value, data){
     }
     return '<div>' + value + '</div>';
 })
-builder.add('renderers', 'task.priority', function(value, data){
+builder.add('renderers', 'task.priority', function(value, data, type){
     if(typeof data.task !== 'undefined' || typeof data.priority !== 'undefined'){
         let color = ['secondary','primary','warning','orange','danger'];
         let name = ['Low','Normal','High','Urgent','Critical'];
@@ -35,19 +35,36 @@ builder.add('renderers', 'task.priority', function(value, data){
     }
     return '<div>' + value + '</div>';
 })
-builder.add('renderers', 'task.assignedTo.username', function(value, data){
+builder.add('renderers', 'task.assignedTo.username', function(value, data, type){
     if(typeof data.task !== 'undefined' || typeof data.assignedTo !== 'undefined'){
         return '<div><img class="avatar" alt="'+value+'" src="/avatar?username='+value+'"><span>'+(value ?? builder.Locale.get('Unassigned'))+'</span></div>';
     }
     return '<div>' + value + '</div>';
 })
-builder.add('renderers', 'task.due', function(value, data){
+builder.add('renderers', 'task.due', function(value, data, type){
+
+    // Check for required data
     if(typeof data.task !== 'undefined' || typeof data.due !== 'undefined'){
+
+        // Handle sorting
+        // console.log(type);
+        if (type === 'sort') {
+            return value ? Date.parse(value) : Number.MAX_SAFE_INTEGER;
+        }
+
+        // Compare date to now and set background color
+        var bg = 'rounded px-2 py-1';
+        if(moment(value).isBefore(moment())){
+            bg += ' text-bg-danger';
+        } else if(moment(value).format('YYYY-MM-DD') == moment().format('YYYY-MM-DD')){
+            bg += ' text-bg-warning';
+        }
+
+        // Setup tooltip and timeago
         setInterval(function(){
             $('[data-type="due"]:not(.rendered)').each(function(){
                 const tooltip = new Date($(this).find('time').attr('datetime') ?? new Date().toISOString());
                 $(this).attr({
-                    'title': tooltip.toLocaleString(),
                     'data-bs-toggle': 'tooltip',
                     'data-bs-title': tooltip.toLocaleString(),
                 }).addClass('rendered');
@@ -55,7 +72,9 @@ builder.add('renderers', 'task.due', function(value, data){
                 $(this).find('time').timeago();
             });
         },100);
-        return '<div data-type="due"><i class="bi bi-clock me-1"></i><time datetime="'+value+'"></time></div>';
+
+        // Return the formatted due date
+        return '<div data-type="due" class="'+bg+'"><i class="bi bi-clock me-1"></i><time datetime="'+value+'"></time></div>';
     }
     return '<div>' + value + '</div>';
 })
@@ -328,6 +347,8 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                                                     card._component.vcard.body.info.container = $(document.createElement('div')).addClass('flex-grow-1').appendTo(card._component.vcard.body.info);
                                                     card._component.vcard.body.info.container.name = $(document.createElement('div')).addClass('d-flex align-items-center gap-2 flex-wrap').text(response.record.target.vcard.name).appendTo(card._component.vcard.body.info.container);
                                                     card._component.vcard.body.info.container.title = $(document.createElement('div')).addClass('small text-secondary').text(response.record.target.vcard.title ?? '').appendTo(card._component.vcard.body.info.container);
+                                                    card._component.vcard.body.info.container.dba = $(document.createElement('div')).addClass('small text-secondary').text(response.record.target.vcard.dba ?? '').appendTo(card._component.vcard.body.info.container);
+                                                    card._component.vcard.body.info.container.phone = $(document.createElement('div')).addClass('badge text-bg-success mt-1').html((response.record.target.vcard.phone !== null) ? '<i class="bi bi-telephone-fill me-2"></i>'+response.record.target.vcard.phone : '').appendTo(card._component.vcard.body.info.container);
                                                     card._component.vcard.body.badges = $(document.createElement('div')).addClass('mt-2 d-flex flex-wrap gap-2').appendTo(card._component.vcard.body);
                                                     for(const [key, role] of Object.entries(JSON.parse(response.record.target.vcard.role || '[]'))){
                                                         $(document.createElement('span')).addClass('badge text-bg-light border').text(role).appendTo(card._component.vcard.body.badges);
@@ -360,6 +381,9 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                                                     });
                                                 }
 
+                                                // Initialize the tabs
+                                                card.tabs = {};
+
                                                 // Notes
                                                 if(self._properties.extensions.includes('notes')){
                                                     tabs.add(
@@ -369,42 +393,25 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                                                             label: builder.Locale.get("Notes"),
                                                         },
                                                         function(tab,nav){
-                                                            card.notes = tab;
-                                                            builder.Widget('notes',tab,{data: response.dependencies.notes ?? {},targetTable: response.record.root.targetTable,targetId: response.record.root.targetId})
+                                                            card.tabs.notes = tab;
+                                                            self._builder.Widget('notes',tab,{data: response.dependencies.notes ?? {},targetTable: response.record.root.targetTable,targetId: response.record.root.targetId,autoStart: true})
                                                         },
                                                     );
                                                 }
 
                                                 // Event
                                                 if(self._properties.extensions.includes('event')){
+
+                                                    // Add the Event tab
                                                     tabs.add(
-                                                        'activities',
+                                                        'event',
                                                         {
                                                             icon: "activity",
                                                             label: builder.Locale.get("Activity"),
                                                         },
                                                         function(tab,nav){
-                                                            tab.addClass('px-4 py-3');
-                                                            card.activities = tab;
-                                                            EventFeed(response.dependencies.event ?? {}, tab);
-                                                        },
-                                                    );
-                                                }
-
-                                                // Relationship
-                                                if(self._properties.extensions.includes('relationship')){
-                                                    tabs.add(
-                                                        'related',
-                                                        {
-                                                            icon: "diagram-2",
-                                                            label: builder.Locale.get("Related"),
-                                                        },
-                                                        function(tab,nav){
-                                                            tab.addClass('px-4 py-3');
-                                                            card.related = tab;
-                                                            RelationshipFeed(response.dependencies.relationship, tab, response.record.root.targetTable, response.record.root.targetId, function(feed){
-                                                                card.related.feed = feed;
-                                                            });
+                                                            card.tabs.event = tab;
+                                                            self._builder.Widget("events",tab,{data: response.dependencies.event ?? {},targetTable: 'tasks',targetId: response.record.id});
                                                         },
                                                     );
                                                 }
@@ -425,6 +432,13 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                                                             widget.controls().appendTo(component.steps)
                                                         }
                                                     );
+                                                }
+
+                                                // Relationship
+                                                if(self._properties.extensions.includes('relationship')){
+
+                                                    // Create the Relationship widget
+                                                    self._builder.Widget("related",tabs._content.details,{data: response.dependencies.relationship ?? {},targetTable: 'tasks',targetId: response.record.id});
                                                 }
                                             },
                                         );
@@ -1135,7 +1149,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
                 defaultContent: '',
                 responsivePriority: 1,
                 render: function(data, type, row, meta) {
-                    return self._builder.Render('task.label', data, row);
+                    return self._builder.Render('task.label', data, row, type);
                 },
             },
             {
@@ -1148,7 +1162,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
                 defaultContent: '',
                 responsivePriority: 200,
                 render: function(data, type, row, meta) {
-                    return self._builder.Render('task.progress', data, row);
+                    return self._builder.Render('task.progress', data, row, type);
                 },
             },
             {
@@ -1161,7 +1175,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
                 defaultContent: '',
                 responsivePriority: 10,
                 render: function(data, type, row, meta) {
-                    return self._builder.Render('task.process', data, row);
+                    return self._builder.Render('task.process', data, row, type);
                 },
             },
             {
@@ -1174,7 +1188,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
                 defaultContent: 0,
                 responsivePriority: 20,
                 render: function(data, type, row, meta) {
-                    return self._builder.Render('task.priority', data, row);
+                    return self._builder.Render('task.priority', data, row, type);
                 },
             },
             {
@@ -1187,7 +1201,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
                 defaultContent: '',
                 responsivePriority: 30,
                 render: function(data, type, row, meta) {
-                    return self._builder.Render('task.assignedTo.username', data, row);
+                    return self._builder.Render('task.assignedTo.username', data, row, type);
                 },
             },
             {
@@ -1200,7 +1214,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
                 defaultContent: '',
                 responsivePriority: 40,
                 render: function(data, type, row, meta) {
-                    return self._builder.Render('task.due', data, row);
+                    return self._builder.Render('task.due', data, row, type);
                 },
             },
         ];
