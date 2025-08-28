@@ -87,6 +87,7 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                 component: null,
             },
             data: null,
+            unassign: true,
             callback: {},
         };
     }
@@ -579,8 +580,21 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                                                         // Check if the task is assigned
                                                         if(response.record.assignedTo.username){
 
-                                                            // Insert a warning message
-                                                            $(document.createElement('div')).addClass('p-3').text('You are about to unassign the user from this task. Are you sure you want to proceed?').appendTo(parent.dialog.content.body);
+                                                            // Check if unassign is allowed
+                                                            if(self._properties.unassign){
+
+                                                                // Insert a warning message
+                                                                $(document.createElement('div')).addClass('p-3').text('You are about to unassign the user from this task. Are you sure you want to proceed?').appendTo(parent.dialog.content.body);
+                                                            } else {
+
+                                                                // Check if a callback is provided
+                                                                if (typeof callback === 'function') {
+                                                                    callback(response);
+                                                                }
+
+                                                                // Close the modal
+                                                                modal.hide();
+                                                            }
                                                         } else {
 
                                                             // assignedTo
