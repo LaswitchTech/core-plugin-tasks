@@ -130,6 +130,89 @@
     }
 }
 
+.tasks-menu {
+    > button {
+        i {
+            height: 2.25rem;
+            width: 1.5rem
+        }
+        span {
+            padding:8px;
+            display: none;
+        }
+    }
+    >.dropdown-menu {
+        min-width:400px !important;
+        max-width:500px !important;
+
+        .header {
+            .badge {
+                display: none;
+            }
+        }
+
+        .tasks-list {
+            max-height:500px;
+            overflow:auto;
+            background-color: var(--bs-body-bg);
+
+            .task-row {
+                transition: 0.3s ease;
+                cursor: pointer;
+                border-top: var(--bs-border-width) solid var(--bs-border-color);
+
+                .task-title {
+                    line-height:1.2;
+                    overflow:hidden;
+                    display:-webkit-box;
+                    -webkit-line-clamp:1;
+                    -webkit-box-orient:vertical;
+                }
+
+                .due {
+                    font-size:.7rem;
+                    padding:.125rem .4rem;
+                    border-radius:999px;
+                    background-color: var(--bs-tertiary-bg);
+                    text-wrap: nowrap;
+                    position: absolute;
+                    top: 0px;
+                    right: 0px;
+
+                    &.overdue {
+                        background-color: var(--bs-danger);
+                        color: var(--bs-body-bg);
+                    }
+                }
+
+                .progress {
+                    height: 4px;
+                }
+
+                &:hover {
+                    background-color: var(--bs-light);
+                    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+                    transform: translateX(-4px);
+                }
+            }
+        }
+    }
+    &:has(.task-row) {
+        > button {
+            span {
+                display: inline-block;
+            }
+        }
+        >.dropdown-menu {
+            .header {
+                .badge {
+                    display: inline-block;
+                }
+            }
+        }
+    }
+}
+
 @media screen and (max-width: 992px) {
     .tasks-feed {
         .dataTables_wrapper {

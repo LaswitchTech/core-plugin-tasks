@@ -1,230 +1,209 @@
-<div class="col-12" id="layout"></div>
+<article id="layout"></article>
 <script>
-    (async function () {
-        await builder.Storage._ensureReady?.();
+    (function () {
         $(document).ready(function(){
-            $.ajax({
-                url: '/api/tasks/fetchAll',
-                headers: {'X-CSRF-Authorization': CSRF_KEY},
-                type: 'POST',dataType: 'json',
-                data: {
-                    conditions: [
-                        {key: 'assignedTo', operator: '=', value: USER_ID},
-                        {key: 'isActive', operator: '=', value: 1},
-                        {key: 'isArchived', operator: '<>', value: 1},
-                        {key: 'isCompleted', operator: '=', value: 0},
-                    ]
+            builder.Layout('index',"#layout",{
+                endpoint: '/tasks/fetchAll',
+                conditions: [
+                    {key: 'isActive', operator: '=', value: 1},
+                    {key: 'isArchived', operator: '=', value: 0},
+                    {key: 'isCompleted', operator: '=', value: 0},
+                ],
+                autoStart:true,
+                dblclick: function(event, table, dt, node, data){
+                    builder.Widget('task',{data: data.id}).view();
                 },
-                error: function(xhr, status, error) {
-                    let color = 'info', icon = 'question-circle', title = builder.Locale.get(xhr.statusText), content = builder.Locale.get(xhr.responseText);
-                    switch(xhr.status){
-                        case 403: color = 'danger'; icon = 'shield-lock'; break;
-                        case 404: color = 'warning'; icon = 'question-diamond'; break;
-                        case 500: color = 'danger'; icon = 'bug'; break;
-                    }
-                    builder.Component("alert","#layout",{icon:icon,color:color,title:title},function(alert,component){component.content.html('<pre class="m-0 p-2">'+content+'</pre>');});
+                actions: {
+                    details:{
+                        label:'Details',
+                        icon:'eye',
+                        action:function(event, table, dt, node, row, data){
+                            builder.Widget('task',{data: data.id}).view();
+                        }
+                    },
+                    archive:{
+                        label:'Archive',
+                        icon:'archive',
+                        action:function(event, table, dt, node, row, data){
+                            builder.Widget('task',{data: data.id}).archive(function(response){
+                                table.delete(row);
+                            });
+                        }
+                    },
                 },
-                success: async function(response) {
-
-                    // Configure Storage
-                    builder.Storage.setKey('tasks:index');
-                    await builder.Storage.set(response);
-                    console.log(await builder.Storage.get());
-
-                    // Create a layout for the task list
-                    var layout = $(document.createElement('div')).addClass('row').appendTo('#layout');
-                    layout.list = $(document.createElement('div')).addClass('col-12').attr('style','transition: all 300ms ease 0s;').appendTo(layout);
-                    layout.details = $(document.createElement('div')).addClass('col-8').attr('style','transition: all 300ms ease 0s; opacity: 0; display: none;').appendTo(layout);
-
-                    // Create a Card for the task list
-                    builder.Component(
-                        "card",
-                        layout.list,
-                        {
-                            class: {
-                                body: "p-0",
-                            },
-                            icon: "card-text",
-                            title: builder.Locale.get("List"),
+                buttons: [
+                    {
+                        extend : 'selected',
+                        className : 'btn-warning requires-selection d-none',
+                        init: function (dt, node){
+                            $(node).removeClass('btn-secondary');
                         },
-                        async function(card,component){
-                            builder.Component(
-                                "accordion",
-                                component.body,
-                                {
-                                    class: {
-                                        component: "w-100",
-                                    },
-                                    flush: true,
-                                    properties: {
-                                        class: {
-                                            collapse: "bg-transparent",
-                                        },
-                                    }
-                                },
-                                async function(accordion,component){
-                                    let categories = await builder.Storage.get('dependencies:categories');
-                                    let records = await builder.Storage.get('records');
-                                    for(const [row, category] of Object.entries(categories ?? {})){
-                                        accordion.add(
-                                            {
-                                                icon: category.icon,
-                                                title: builder.Locale.get(category.name.charAt(0).toUpperCase() + category.name.slice(1)),
-                                            },
-                                            function(item,accordion){
-                                                item.header.button.attr({
-                                                    'data-category': category,
-                                                });
-                                                item.content.addClass('p-0');
-                                                builder.Component(
-                                                    "list",
-                                                    item.content,
-                                                    {
-                                                        class: {
-                                                            component: "bg-transparent",
-                                                        },
-                                                        icon: "empty",
-                                                    },
-                                                    function(list,component){
-                                                        for(const [id, task] of Object.entries(records ?? {})){
-                                                            if(task.category == category.name){
-                                                                list.add(
-                                                                    {
-                                                                        field: builder.Parser.parse(task.label),
-                                                                    },
-                                                                    function(item,list){
+                        text: '<i class="bi bi-person-plus"></i><span class="ms-2 d-xxl-inline d-none">'+builder.Locale.get('Assign')+'</span>',
+                        action:function(e, dt, node, config){
+                            builder.Widget('tasks',{data: dt.rows({ selected: true }).data().toArray(),render:false}).assign(function(records){
 
-                                                                        // Add attributes to the item
-                                                                        item.attr({
-                                                                            'data-task': task.id,
-                                                                            'data-category': task.category,
-                                                                        });
+                                // Refresh the records in the table
+                                dt.rows({ selected: true }).data(records).draw();
 
-                                                                        // on hover Add bg-secondary to the item
-                                                                        item.hover(
-                                                                            function(){
-                                                                                item.addClass('text-bg-secondary cursor-pointer');
-                                                                            },
-                                                                            function(){
-                                                                                item.removeClass('text-bg-secondary cursor-pointer');
-                                                                            },
-                                                                        );
-
-                                                                        // Set position to relative
-                                                                        item.field.addClass('position-relative');
-
-                                                                        // Add an absolute position container for the due date and priority
-                                                                        item.field.container = $(document.createElement('div')).addClass('position-absolute top-0 end-0 me-2 mt-2').appendTo(item.field);
-
-                                                                        // Add the priority to the item
-                                                                        let color = ['secondary','primary','warning','orange','danger'];
-                                                                        let name = ['Low','Normal','High','Urgent','Critical'];
-                                                                        item.priority = $(document.createElement('span')).attr({
-                                                                            "class": "badge rounded-end-0 text-bg-"+color[task.priority],
-                                                                            "data-type": "priority",
-                                                                            "data-task": task.id,
-                                                                        }).text(name[task.priority]).appendTo(item.field.container);
-
-                                                                        // Set default background to null
-                                                                        var bg = 'text-bg-secondary';
-
-                                                                        // If task.due date is today, set bg to warning
-                                                                        if(moment(task.due).format('YYYY-MM-DD') == moment().format('YYYY-MM-DD')){
-                                                                            bg = 'text-bg-warning';
-                                                                        }
-
-                                                                        // If task.due date is past (including time), set bg to danger
-                                                                        if(moment(task.due).isBefore(moment())){
-                                                                            bg = 'text-bg-danger';
-                                                                        }
-
-                                                                        // Add the due date to the item
-                                                                        item.due = $(document.createElement('span')).addClass(bg).addClass('badge rounded-start-0 text-bg-secondary').text(moment(task.due).format('YYYY-MM-DD HH:mm')).appendTo(item.field.container);
-
-                                                                        // Remove the icon and actions divs
-                                                                        setTimeout(() => {
-                                                                            item.icon.remove();
-                                                                            item.container.icon.remove();
-                                                                            item.actions.remove();
-                                                                            item.field.removeClass('px-1 py-2 ps-2 pe-0').addClass('p-2')
-                                                                        }, 300);
-
-                                                                        // Progress
-                                                                        builder.Component(
-                                                                            "progress",
-                                                                            item,
-                                                                            {
-                                                                                class: {
-                                                                                    component: "m-2 mt-0",
-                                                                                },
-                                                                                callback: {
-                                                                                    change: function(progress){},
-                                                                                },
-                                                                                scale: task.scale,
-                                                                                label: "{percent}",
-                                                                                color: task.assignedTo.id == USER_ID ? "success" : "info",
-                                                                            },
-                                                                            function(progress,component){
-                                                                                progress.set(task.progress);
-                                                                            },
-                                                                        );
-
-                                                                        // on click
-                                                                        item.click(function(){
-
-                                                                            // add URL parameter
-                                                                            let params = new URLSearchParams(window.location.search);
-                                                                            params.set('id', task.id);
-                                                                            let newUrl = window.location.pathname + '?' + params.toString();
-                                                                            window.history.pushState({ path: newUrl }, '', newUrl);
-
-                                                                            // Rearrange the layout
-                                                                            if(layout.list.hasClass('col-12')){
-                                                                                layout.list.addClass('col-4').removeClass('col-12');
-                                                                                setTimeout(() => {
-                                                                                    layout.details.css({"opacity": 1, "display": "block"});
-                                                                                }, 300);
-                                                                            }
-
-                                                                            // Update the active item
-                                                                            $('li.list-group-item').removeClass('text-bg-primary');
-                                                                            item.addClass('text-bg-primary');
-
-                                                                            // Setup the details
-                                                                            TaskDetails(task.id, layout.details, function(){});
-                                                                        });
-                                                                    },
-                                                                );
-                                                            }
-                                                        }
-                                                        component.find('[data-vcard]').off().click(function(){
-                                                            vCardModal($(this).attr('data-vcard'),$(this).attr('data-vcard-name'));
-                                                        });
-                                                    },
-                                                );
-                                                setTimeout(function(){
-                                                    if(category.isShown){ $('#' + item.id + 'collapse').collapse('show'); }
-                                                    item.removeAttr('data-search')
-                                                }, 0);
-                                            },
-                                        );
-                                    }
-
-                                    // Retrieve the ID from the URL
-                                    var url = new URL(window.location.href);
-                                    var id = url.searchParams.get("id");
-
-                                    // Trigger the click event of the item
-                                    setTimeout(() => {
-                                        if(id){
-                                            $('[data-task="'+id+'"]').last().trigger('click');
-                                        }
-                                    }, 300);
-                                }
-                            );
+                                // Deselect all rows
+                                dt.rows().deselect();
+                            });
                         },
-                    );
-                }
+                    },
+                    {
+                        extend : 'selected',
+                        className : 'btn-warning requires-selection d-none',
+                        init: function (dt, node){
+                            $(node).removeClass('btn-secondary');
+                        },
+                        text: '<i class="bi bi-person-x"></i><span class="ms-2 d-xxl-inline d-none">'+builder.Locale.get('Unassign')+'</span>',
+                        action:function(e, dt, node, config){
+                            builder.Widget('tasks',{data: dt.rows({ selected: true }).data().toArray(),render:false}).unassign(function(records){
+
+                                // Refresh the records in the table
+                                dt.rows({ selected: true }).data(records).draw();
+
+                                // Deselect all rows
+                                dt.rows().deselect();
+                            });
+                        },
+                    },
+                    {
+                        extend : 'selected',
+                        className : 'btn-primary requires-selection d-none',
+                        init: function (dt, node){
+                            $(node).removeClass('btn-secondary');
+                        },
+                        text: '<i class="bi bi-exclamation-triangle"></i><span class="ms-2 d-xxl-inline d-none">'+builder.Locale.get('Priority')+'</span>',
+                        action:function(e, dt, node, config){
+                            builder.Widget('tasks',{data: dt.rows({ selected: true }).data().toArray(),render:false}).priority(function(records){
+
+                                // Refresh the records in the table
+                                dt.rows({ selected: true }).data(records).draw();
+
+                                // Deselect all rows
+                                dt.rows().deselect();
+                            });
+                        },
+                    },
+                    {
+                        extend : 'selected',
+                        className : 'btn-dark requires-selection d-none',
+                        init: function (dt, node){
+                            $(node).removeClass('btn-secondary');
+                        },
+                        text: '<i class="bi bi-archive"></i><span class="ms-2 d-xxl-inline d-none">'+builder.Locale.get('Archive')+'</span>',
+                        action:function(e, dt, node, config){
+                            builder.Widget('tasks',{data: dt.rows({ selected: true }).data().toArray(),render:false}).archive(function(records){
+
+                                // Remove the records from the table
+                                dt.rows({ selected: true }).remove().draw();
+
+                                // Deselect all rows
+                                dt.rows().deselect();
+                            });
+                        },
+                    },
+                ],
+                order: [[7, 'asc']],
+                columns: [
+                    {
+                        targets: 0,
+                        visible: false,
+                        title: builder.Locale.get('ID'),
+                        name: 'id',
+                        data: 'id',
+                    },
+                    {
+                        targets: 1,
+                        visible: false,
+                        title: builder.Locale.get('Category'),
+                        className: 'min-md',
+                        name: 'category',
+                        data: 'category',
+                        defaultContent: '',
+                        responsivePriority: 100,
+                    },
+                    {
+                        targets: 2,
+                        visible: true,
+                        title: builder.Locale.get('Label'),
+                        className: 'all',
+                        name: 'label',
+                        data: 'label',
+                        width: '50%',
+                        defaultContent: '',
+                        responsivePriority: 1,
+                        render: function(data, type, row, meta) {
+                            return builder.Render('task.label', data, row, type);
+                        },
+                    },
+                    {
+                        targets: 3,
+                        visible: false,
+                        title: builder.Locale.get('Status'),
+                        className: 'min-md',
+                        name: 'status',
+                        data: 'progress',
+                        defaultContent: '',
+                        responsivePriority: 200,
+                        render: function(data, type, row, meta) {
+                            return builder.Render('task.progress', data, row, type);
+                        },
+                    },
+                    {
+                        targets: 4,
+                        visible: true,
+                        title: builder.Locale.get('Task'),
+                        className: 'min-md',
+                        name: 'task',
+                        data: 'process',
+                        defaultContent: '',
+                        responsivePriority: 10,
+                        render: function(data, type, row, meta) {
+                            return builder.Render('task.process', data, row, type);
+                        },
+                    },
+                    {
+                        targets: 5,
+                        visible: true,
+                        title: builder.Locale.get('Priority'),
+                        className: 'min-md',
+                        name: 'priority',
+                        data: 'priority',
+                        defaultContent: 0,
+                        responsivePriority: 20,
+                        render: function(data, type, row, meta) {
+                            return builder.Render('task.priority', data, row, type);
+                        },
+                    },
+                    {
+                        targets: 6,
+                        visible: true,
+                        title: builder.Locale.get('Assigned To'),
+                        className: 'min-md',
+                        name: 'assignedTo',
+                        data: 'assignedTo.username',
+                        defaultContent: '',
+                        responsivePriority: 30,
+                        render: function(data, type, row, meta) {
+                            return builder.Render('task.assignedTo.username', data, row, type);
+                        },
+                    },
+                    {
+                        targets: 7,
+                        visible: true,
+                        title: builder.Locale.get('Due'),
+                        className: 'min-md',
+                        name: 'due',
+                        data: 'due',
+                        defaultContent: '',
+                        responsivePriority: 40,
+                        render: function(data, type, row, meta) {
+                            return builder.Render('task.due', data, row, type);
+                        },
+                    },
+                ],
             });
         });
     })();
