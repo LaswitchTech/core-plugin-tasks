@@ -1054,6 +1054,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
         this._properties.class.footer = 'tasks-footer';
         this._properties.standardSearch = true;
         this._properties.advancedSearch = false;
+        this._properties.exportTools = false;
         this._properties.showButtonsLabel = false;
 
         // Table Actions
