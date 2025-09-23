@@ -131,7 +131,7 @@ function dashboard_meta_tableTasksCategorized(key = null){
             {id: 'Callback', text: 'Callback'},
             {id: 'Appointment', text: 'Appointment'},
         ],
-        minSize: 6,
+        minSize: 8,
     };
     return metadata[key] ? metadata[key] : metadata;
 }
@@ -160,7 +160,7 @@ function dashboard_meta_tableDailyTasks(key = null){
         label: "All My Daily Tasks",
         description: "This is a table that shows all the active tasks due today.",
         type: "none",
-        minSize: 6,
+        minSize: 8,
     };
     return metadata[key] ? metadata[key] : metadata;
 }
@@ -198,7 +198,7 @@ function dashboard_meta_tableDailyTasksCategorized(key = null){
             {id: 'Callback', text: 'Callback'},
             {id: 'Appointment', text: 'Appointment'},
         ],
-        minSize: 6,
+        minSize: 8,
     };
     return metadata[key] ? metadata[key] : metadata;
 }
@@ -227,7 +227,7 @@ function dashboard_meta_tableMyTasks(key = null){
         label: "All My Tasks",
         description: "This is a table that shows your active tasks.",
         type: "none",
-        minSize: 6,
+        minSize: 8,
     };
     return metadata[key] ? metadata[key] : metadata;
 }
@@ -265,7 +265,7 @@ function dashboard_meta_tableMyTasksCategorized(key = null){
             {id: 'Callback', text: 'Callback'},
             {id: 'Appointment', text: 'Appointment'},
         ],
-        minSize: 6,
+        minSize: 8,
     };
     return metadata[key] ? metadata[key] : metadata;
 }
@@ -295,7 +295,7 @@ function dashboard_meta_tableMyDailyTasks(key = null){
         label: "All My Daily Tasks",
         description: "This is a table that shows your active tasks due today.",
         type: "none",
-        minSize: 6,
+        minSize: 8,
     };
     return metadata[key] ? metadata[key] : metadata;
 }
@@ -334,7 +334,7 @@ function dashboard_meta_tableMyDailyTasksCategorized(key = null){
             {id: 'Callback', text: 'Callback'},
             {id: 'Appointment', text: 'Appointment'},
         ],
-        minSize: 6,
+        minSize: 8,
     };
     return metadata[key] ? metadata[key] : metadata;
 }
