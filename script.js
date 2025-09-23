@@ -352,7 +352,8 @@ function dashboard_widget_countTasks(value = null){
             color: 'primary',
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
+                {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'isCompleted', operator: '<>', value: 1},
             ],
         },
     );
@@ -380,7 +381,8 @@ function dashboard_widget_countTasksCategorized(value = null){
             color: 'primary',
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
+                {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'isCompleted', operator: '<>', value: 1},
                 {key: 'category', operator: '=', value: value},
             ],
         },
@@ -417,7 +419,8 @@ function dashboard_widget_countDailyTasks(value = null){
             color: 'warning',
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
+                {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'isCompleted', operator: '<>', value: 1},
                 {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
             ],
         },
@@ -446,7 +449,8 @@ function dashboard_widget_countDailyTasksCategorized(value = null){
             color: 'warning',
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
+                {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'isCompleted', operator: '<>', value: 1},
                 {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
                 {key: 'category', operator: '=', value: value},
             ],
@@ -484,7 +488,8 @@ function dashboard_widget_countMissedTasks(value = null){
             color: 'danger',
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
+                {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'isCompleted', operator: '<>', value: 1},
                 {key: 'due', operator: '<', value: moment().format('YYYY-MM-DD HH:mm:ss')},
             ],
         },
@@ -513,7 +518,8 @@ function dashboard_widget_countMissedTasksCategorized(value = null){
             color: 'danger',
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
+                {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'isCompleted', operator: '<>', value: 1},
                 {key: 'due', operator: '<', value: moment().format('YYYY-MM-DD HH:mm:ss')},
                 {key: 'category', operator: '=', value: value},
             ],
@@ -683,7 +689,8 @@ function dashboard_widget_countMyTasks(value = null){
             color: 'primary',
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
+                {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'isCompleted', operator: '<>', value: 1},
                 {key: 'assignedTo', operator: '=', value: USER_ID},
             ],
         },
@@ -712,7 +719,8 @@ function dashboard_widget_countMyTasksCategorized(value = null){
             color: 'primary',
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
+                {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'isCompleted', operator: '<>', value: 1},
                 {key: 'category', operator: '=', value: value},
                 {key: 'assignedTo', operator: '=', value: USER_ID},
             ],
@@ -750,7 +758,8 @@ function dashboard_widget_countMyDailyTasks(value = null){
             color: 'warning',
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
+                {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'isCompleted', operator: '<>', value: 1},
                 {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
                 {key: 'assignedTo', operator: '=', value: USER_ID},
             ],
@@ -780,7 +789,8 @@ function dashboard_widget_countMyDailyTasksCategorized(value = null){
             color: 'warning',
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
+                {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'isCompleted', operator: '<>', value: 1},
                 {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
                 {key: 'assignedTo', operator: '=', value: USER_ID},
                 {key: 'category', operator: '=', value: value},
@@ -819,7 +829,8 @@ function dashboard_widget_countMyMissedTasks(value = null){
             color: 'danger',
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
+                {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'isCompleted', operator: '<>', value: 1},
                 {key: 'due', operator: '<', value: moment().format('YYYY-MM-DD HH:mm:ss')},
                 {key: 'assignedTo', operator: '=', value: USER_ID},
             ],
@@ -849,7 +860,8 @@ function dashboard_widget_countMyMissedTasksCategorized(value = null){
             color: 'danger',
             conditions:[
                 {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
+                {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'isCompleted', operator: '<>', value: 1},
                 {key: 'due', operator: '<', value: moment().format('YYYY-MM-DD HH:mm:ss')},
                 {key: 'assignedTo', operator: '=', value: USER_ID},
                 {key: 'category', operator: '=', value: value},
