@@ -1795,6 +1795,9 @@ builder.add('widgets','widgetTasks', class extends builder.ComponentClass {
             'card',
             this._component,
             {
+                class: {
+                    component: 'shadow',
+                },
                 icon: "list-task",
                 title: this._properties.title,
             },
@@ -1876,6 +1879,9 @@ builder.add('widgets','widgetTasksCounter', class extends builder.ComponentClass
             "badge",
             this._component,
             {
+                class: {
+                    component: 'shadow',
+                },
                 icon: this._properties.icon,
                 color: this._properties.color,
             },
