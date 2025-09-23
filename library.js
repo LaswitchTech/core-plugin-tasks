@@ -1054,6 +1054,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
         this._properties.class.footer = 'tasks-footer';
         this._properties.standardSearch = true;
         this._properties.advancedSearch = false;
+        this._properties.exportTools = false;
         this._properties.showButtonsLabel = false;
 
         // Table Actions
@@ -1794,6 +1795,9 @@ builder.add('widgets','widgetTasks', class extends builder.ComponentClass {
             'card',
             this._component,
             {
+                class: {
+                    component: 'shadow',
+                },
                 icon: "list-task",
                 title: this._properties.title,
             },
@@ -1875,6 +1879,9 @@ builder.add('widgets','widgetTasksCounter', class extends builder.ComponentClass
             "badge",
             this._component,
             {
+                class: {
+                    component: 'shadow',
+                },
                 icon: this._properties.icon,
                 color: this._properties.color,
             },
