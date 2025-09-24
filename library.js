@@ -2156,6 +2156,11 @@ builder.add('widgets','tasksMenu', class extends builder.ComponentClass {
                 .find('[data-priority]')
                 .filter((_, el) => +$(el).data('priority') <= +this._priority)
                 .hide();
+        if(this._component.menu.list.find('[data-priority]').filter((_, el) => +$(el).data('priority') > +this._priority).length > 0){
+            this._component.btn.badge.show();
+        } else {
+            this._component.btn.badge.hide();
+        }
     }
 
     delete(id = null){
