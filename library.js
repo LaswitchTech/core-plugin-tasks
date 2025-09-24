@@ -2100,6 +2100,7 @@ builder.add('widgets','tasksMenu', class extends builder.ComponentClass {
                 {key: 'assignedTo', operator: '=', value: USER_ID},
                 {key: 'isActive', operator: '=', value: 1},
                 {key: 'isArchived', operator: '<>', value: 1},
+                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
                 {key: 'isCompleted', operator: '=', value: 0},
             ],
         }).execute(function(response){
