@@ -182,4 +182,38 @@ class TasksModel extends BaseModel {
         // Call the parent update method
         return parent::update($id, $data);
     }
+
+    /**
+     * Create a new record and return the id
+     *
+     * @param array $data
+     * @return int
+     */
+    public function create(array $data): int
+    {
+        // Call the parent constructor
+        $id = parent::create($data);
+
+        // Check if the id is valid
+        if($id){
+
+            // Retrieve the task
+            $task = $this->fetch($id);
+
+            // Check if the task's root has a task
+            if(isset($task['root'],$task['root']['target'],$task['root']['target']['task']) && $task['root']['target']['task']){
+
+                // Retrieve root the task
+                $root = $this->fetch($task['root']['target']['task']);
+
+                // Check if the task priority matches the root task priority
+                if($task['priority'] != $root['priority']){
+                    $this->update($id, ['priority' => $root['priority']]);
+                }
+            }
+        }
+
+        // Return the id
+        return $id;
+    }
 }
