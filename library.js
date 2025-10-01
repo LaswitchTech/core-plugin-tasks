@@ -1796,7 +1796,7 @@ builder.add('widgets','widgetTasks', class extends builder.ComponentClass {
             this._component,
             {
                 class: {
-                    component: 'shadow',
+                    component: 'shadow rounded',
                 },
                 icon: "list-task",
                 title: this._properties.title,
