@@ -1,3 +1,727 @@
+// Register - Task Counter Widget
+// A simple counter widget for the dashboard to count tasks based on conditions
+// by default it counts all tasks, but can be filtered by owner or other conditions
+dashboard.add('counter-tasks', class extends dashboard.Widget {
+    _init(){
+        this._properties = {
+            name: "counter-tasks",
+            label: "Task Counter",
+            description: "A simple counter widget to count tasks based on conditions.",
+            minSize: 1,
+            maxSize: 12,
+            interval: 10000,
+            autoStart: true,
+        };
+        this._options = {
+            title: this._options.title || this._properties.label,
+            timeframe: this._options.timeframe || 'all', // all, today, missed
+            owner: this._options.owner || 'all', // All, or specific user id
+            archived: this._options.archived ?? false, // false, true
+            completed: this._options.completed ?? false, // false, true
+            active: this._options.active ?? true, // true, false
+            category: this._options.category || 'all', // All, or specific category
+            icon: this._options.icon || 'check2-square',
+            color: this._options.color || 'primary',
+        };
+        this._badge = null;
+    }
+
+    conditions(){
+        const conditions = [];
+        switch(this._options.timeframe){
+            case 'today':
+                conditions.push({key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')});
+                break;
+            case 'missed':
+                conditions.push({key: 'due', operator: '<', value: moment().format('YYYY-MM-DD HH:mm:ss')});
+                break;
+        }
+        if(this._options.owner && this._options.owner !== 'all'){
+            conditions.push({key: 'assignedTo', operator: '=', value: this._options.owner});
+        }
+        if(this._options.category && this._options.category !== 'all'){
+            conditions.push({key: 'category', operator: '=', value: this._options.category});
+        }
+        if(this._options.archived){
+            conditions.push({key: 'isArchived', operator: '=', value: 1});
+        } else {
+            conditions.push({key: 'isArchived', operator: '<>', value: 1});
+        }
+        if(this._options.completed){
+            conditions.push({key: 'isCompleted', operator: '=', value: 1});
+        } else {
+            conditions.push({key: 'isCompleted', operator: '<>', value: 1});
+        }
+        if(this._options.active){
+            conditions.push({key: 'isActive', operator: '=', value: 1});
+        }
+        return conditions;
+    }
+
+    title(){
+        // Create a dynamic title based on options
+
+        // Timeframe
+        switch(this._options.timeframe){
+            case 'all':
+                this._options.title = 'Tasks';
+                break;
+            case 'today':
+                this._options.title = "Today's Tasks";
+                break;
+            case 'missed':
+                this._options.title = 'Missed Tasks';
+                break;
+        }
+
+        // Owner
+        switch(this._options.owner){
+            case 'all':
+                break;
+            default:
+                this._options.title = 'My ' + this._options.title;
+                break;
+        }
+
+        // Completed
+        if(this._options.completed){
+            this._options.title = this._options.title.replace('Tasks', 'Completed Tasks');
+        }
+
+        // Archived
+        if(this._options.archived){
+            this._options.title = this._options.title.replace('Tasks', 'Archived Tasks');
+        }
+
+        // Category
+        if(this._options.category && this._options.category !== 'all'){
+            this._options.title = this._options.title.replace('Tasks', this._options.category+'s');
+        }
+
+        return this._options.title;
+    }
+
+    _create(){
+        const self = this;
+
+        // Create the Badge
+        this._builder.Component(
+            "badge",
+            this._component.gadget,
+            {
+                icon: this._options.icon,
+                color: this._options.color,
+            },
+            function(badge,component){
+
+                // Set the badge
+                self._badge = badge;
+
+                // Set Content
+                component.label = $(document.createElement("h5")).addClass("m-0").text(self._builder.Locale.get(self.title())).appendTo(component.content);
+                component.count = $(document.createElement("p")).addClass("m-0").text(0).appendTo(component.content);
+            },
+        );
+    }
+
+    _load(){
+        const self = this;
+        API.endpoint('/tasks/count').data({conditions: this.conditions()}).execute(function(response){
+            self.load(response.count);
+        });
+    }
+
+    _render(){
+        if(this._badge){
+            this._badge._component.label.text(this._builder.Locale.get(this.title()));
+            this._badge._component.count.text(this._data !== null ? this._data : '0');
+            this._badge._component.iconFrame.attr('class','d-flex justify-content-center align-items-center rounded text-bg-'+this._options.color);
+            this._badge._component.icon.attr('class','fs-3 bi bi-'+this._options.icon);
+        }
+    }
+
+    _config(form){
+
+        // timeframe
+        form.add(
+            'select',
+            {
+                name: 'timeframe',
+                label: this._builder.Locale.get('Timeframe'),
+                placeholder: this._builder.Locale.get('Select a timeframe'),
+                options: [
+                    {id: 'all', text: this._builder.Locale.get('All Time')},
+                    {id: 'today', text: this._builder.Locale.get('Today')},
+                    {id: 'missed', text: this._builder.Locale.get('Missed')},
+                ],
+                value: this._options.timeframe,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+            }
+        );
+
+        // owner
+        form.add(
+            'select',
+            {
+                name: 'owner',
+                label: this._builder.Locale.get('Owner'),
+                placeholder: this._builder.Locale.get('Select an owner'),
+                options: [
+                    {id: 'all', text: this._builder.Locale.get('All Tasks')},
+                    {id: USER_ID, text: this._builder.Locale.get('My Tasks only')},
+                ],
+                value: this._options.owner,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+            }
+        );
+
+        // archived
+        form.add(
+            'switch',
+            {
+                name: 'archived',
+                label: builder.Locale.get('Count Archived Tasks'),
+                value: this._options.archived,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+            }
+        );
+
+        // completed
+        form.add(
+            'switch',
+            {
+                name: 'completed',
+                label: builder.Locale.get('Count Completed Tasks'),
+                value: this._options.completed,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+            }
+        );
+
+        // active
+        form.add(
+            'switch',
+            {
+                name: 'active',
+                label: builder.Locale.get('Count Active Tasks Only'),
+                value: this._options.active,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+            }
+        );
+
+        // category
+        form.add(
+            'select',
+            {
+                name: 'category',
+                label: this._builder.Locale.get('Category'),
+                placeholder: this._builder.Locale.get('Select a category'),
+                options: [
+                    {id: 'all', text: this._builder.Locale.get('Any Category')},
+                    {id: 'Lead', text: 'Lead'},
+                    {id: 'Client', text: 'Client'},
+                    {id: 'Call', text: 'Call'},
+                    {id: 'Callback', text: 'Callback'},
+                    {id: 'Appointment', text: 'Appointment'},
+                ],
+                value: this._options.category,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+            }
+        );
+
+        // color
+        form.add(
+            'select2',
+            {
+                name: 'color',
+                label: this._builder.Locale.get('Color'),
+                placeholder: this._builder.Locale.get('Select a color'),
+                options: this.colors(),
+                value: this._options.color,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+                callback:{
+                    format: function(option, component){
+                        if (!option.id) { return option.text; }
+                        return $('<div class="px-3 py-2 animate-flicker-hover text-bg-' +  option.element.value.toLowerCase() + '" style="margin: -.375rem -.75rem!important;">' + option.text + '</div>');;
+                    },
+                },
+            }
+        );
+
+        // icon
+        form.add(
+            'select2',
+            {
+                name: 'icon',
+                label: this._builder.Locale.get('Icon'),
+                placeholder: this._builder.Locale.get('Select an icon'),
+                options: this.icons(),
+                value: this._options.icon,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+                callback:{
+                    format: function(option, component){
+                        if (!option.id) { return option.text; }
+                        return $('<span class=""><i class="me-2 text-bg-light p-1 fs-4 rounded bi bi-' +  option.element.value.toLowerCase() + '"></i>' + option.text + '</span>');
+                    },
+                },
+            }
+        );
+    }
+});
+
+// Register - Task Table Widget
+// A simple table widget for the dashboard to manage tasks based on conditions
+// by default it manages all tasks, but can be filtered by owner or other conditions
+dashboard.add('table-tasks', class extends dashboard.Widget {
+    _init(){
+        this._properties = {
+            name: "table-tasks",
+            label: "Task Table",
+            description: "A simple table widget to manage tasks based on conditions.",
+            minSize: 1,
+            maxSize: 12,
+            interval: 10000,
+            autoStart: true,
+        };
+        this._options = {
+            title: this._options.title || this._properties.label,
+            timeframe: this._options.timeframe || 'all', // all, today, missed
+            owner: this._options.owner || 'all', // All, or specific user id
+            archived: this._options.archived ?? false, // false, true
+            completed: this._options.completed ?? false, // false, true
+            active: this._options.active ?? true, // true, false
+            category: this._options.category || 'all', // All, or specific category
+            icon: this._options.icon || 'check2-square',
+        };
+        this._card = null;
+        this._table = null;
+    }
+
+    conditions(){
+        const conditions = [];
+        switch(this._options.timeframe){
+            case 'today':
+                conditions.push({key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')});
+                break;
+            case 'missed':
+                conditions.push({key: 'due', operator: '<', value: moment().format('YYYY-MM-DD HH:mm:ss')});
+                break;
+        }
+        if(this._options.owner && this._options.owner !== 'all'){
+            conditions.push({key: 'assignedTo', operator: '=', value: this._options.owner});
+        }
+        if(this._options.category && this._options.category !== 'all'){
+            conditions.push({key: 'category', operator: '=', value: this._options.category});
+        }
+        if(this._options.archived){
+            conditions.push({key: 'isArchived', operator: '=', value: 1});
+        } else {
+            conditions.push({key: 'isArchived', operator: '<>', value: 1});
+        }
+        if(this._options.completed){
+            conditions.push({key: 'isCompleted', operator: '=', value: 1});
+        } else {
+            conditions.push({key: 'isCompleted', operator: '<>', value: 1});
+        }
+        if(this._options.active){
+            conditions.push({key: 'isActive', operator: '=', value: 1});
+        }
+        return conditions;
+    }
+
+    title(){
+        // Create a dynamic title based on options
+
+        // Timeframe
+        switch(this._options.timeframe){
+            case 'all':
+                this._options.title = 'Tasks';
+                break;
+            case 'today':
+                this._options.title = "Today's Tasks";
+                break;
+            case 'missed':
+                this._options.title = 'Missed Tasks';
+                break;
+        }
+
+        // Owner
+        switch(this._options.owner){
+            case 'all':
+                break;
+            default:
+                this._options.title = 'My ' + this._options.title;
+                break;
+        }
+
+        // Completed
+        if(this._options.completed){
+            this._options.title = this._options.title.replace('Tasks', 'Completed Tasks');
+        }
+
+        // Archived
+        if(this._options.archived){
+            this._options.title = this._options.title.replace('Tasks', 'Archived Tasks');
+        }
+
+        // Category
+        if(this._options.category && this._options.category !== 'all'){
+            this._options.title = this._options.title.replace('Tasks', this._options.category+'s');
+        }
+
+        return this._options.title;
+    }
+
+    _create(){
+
+        // Set Self
+        const self = this;
+
+        // Create the Card
+        this._builder.Component(
+            'card',
+            this._component.gadget,
+            {
+                icon: this._options.icon,
+                title: this.title(),
+            },
+            function(card, component){
+
+                // Set _card
+                self._card = card;
+
+                // Styling
+                component.body.addClass('p-0');
+
+                // Create the Table
+                self._builder.Component(
+                    'datatable',
+                    component.body,
+                    {
+                        class: {
+                            component: 'tasks-feed',
+                            buttons: 'tasks-controls',
+                            table: 'tasks-table',
+                            footer: 'tasks-footer',
+                        },
+                        standardSearch: true,
+                        advancedSearch: false,
+                        exportTools: false,
+                        showButtonsLabel: false,
+                        actions: {
+                            details:{
+                                label: self._builder.Locale.get('Details'),
+                                icon: 'eye',
+                                action:function(event, table, dt, node, row, data){
+                                    self._builder.Widget('task',{data: data.id}).view();
+                                }
+                            },
+                            archive:{
+                                label: self._builder.Locale.get('Archive'),
+                                icon: 'archive',
+                                action:function(event, table, dt, node, row, data){
+                                    self._builder.Widget('task',{data: data.id}).archive(function(response){
+                                        self._table.delete(row);
+                                    });
+                                }
+                            },
+                        },
+                        dblclick: function(event, table, dt, node, data){
+                            self._builder.Widget('task',{data: data.id}).view();
+                        },
+                        datatable: {
+                            responsive: {
+                                breakpoints: [
+                                    { name: 'xl', width: Infinity },
+                                    { name: 'lg', width: 1400 },
+                                    { name: 'md', width: 992 },
+                                    { name: 'sm', width: 768 },
+                                    { name: 'xs', width: 576 },
+                                    { name: 'xxs', width: 0 }
+                                ]
+                            },
+                            buttons: [],
+                            columnDefs: [
+                                {
+                                    targets: 0,
+                                    visible: false,
+                                    title: builder.Locale.get('ID'),
+                                    name: 'id',
+                                    data: 'id',
+                                },
+                                {
+                                    targets: 1,
+                                    visible: false,
+                                    title: builder.Locale.get('Category'),
+                                    className: 'min-md',
+                                    name: 'category',
+                                    data: 'category',
+                                    defaultContent: '',
+                                    responsivePriority: 100,
+                                },
+                                {
+                                    targets: 2,
+                                    visible: true,
+                                    title: builder.Locale.get('Label'),
+                                    className: 'all',
+                                    name: 'label',
+                                    data: 'label',
+                                    width: '50%',
+                                    defaultContent: '',
+                                    responsivePriority: 1,
+                                    render: function(data, type, row, meta) {
+                                        return self._builder.Render('task.label', data, row, type);
+                                    },
+                                },
+                                {
+                                    targets: 3,
+                                    visible: false,
+                                    title: builder.Locale.get('Status'),
+                                    className: 'min-md',
+                                    name: 'status',
+                                    data: 'progress',
+                                    defaultContent: '',
+                                    responsivePriority: 200,
+                                    render: function(data, type, row, meta) {
+                                        return self._builder.Render('task.progress', data, row, type);
+                                    },
+                                },
+                                {
+                                    targets: 4,
+                                    visible: true,
+                                    title: builder.Locale.get('Task'),
+                                    className: 'min-md',
+                                    name: 'task',
+                                    data: 'process',
+                                    defaultContent: '',
+                                    responsivePriority: 10,
+                                    render: function(data, type, row, meta) {
+                                        return self._builder.Render('task.process', data, row, type);
+                                    },
+                                },
+                                {
+                                    targets: 5,
+                                    visible: true,
+                                    title: builder.Locale.get('Priority'),
+                                    className: 'min-md',
+                                    name: 'priority',
+                                    data: 'priority',
+                                    defaultContent: 0,
+                                    responsivePriority: 20,
+                                    render: function(data, type, row, meta) {
+                                        return self._builder.Render('task.priority', data, row, type);
+                                    },
+                                },
+                                {
+                                    targets: 6,
+                                    visible: true,
+                                    title: builder.Locale.get('Assigned To'),
+                                    className: 'min-md',
+                                    name: 'assignedTo',
+                                    data: 'assignedTo.username',
+                                    defaultContent: '',
+                                    responsivePriority: 30,
+                                    render: function(data, type, row, meta) {
+                                        return self._builder.Render('task.assignedTo.username', data, row, type);
+                                    },
+                                },
+                                {
+                                    targets: 7,
+                                    visible: true,
+                                    title: builder.Locale.get('Due'),
+                                    className: 'min-md',
+                                    name: 'due',
+                                    data: 'due',
+                                    defaultContent: '',
+                                    responsivePriority: 40,
+                                    render: function(data, type, row, meta) {
+                                        return self._builder.Render('task.due', data, row, type);
+                                    },
+                                },
+                            ],
+                            order: [[7, 'asc']],
+                            initComplete: function(param) {
+                                $(param.nTableWrapper).find('.dataTables_filter input').attr({
+                                    'placeholder': builder.Locale.get('Search...'),
+                                });
+                            },
+                        },
+                    },
+                    function(table, component){
+
+                        // Set _table
+                        self._table = table;
+                    },
+                );
+            },
+        );
+    }
+
+    _load(){
+        const self = this;
+        API.endpoint('/tasks/fetchAll').data({conditions: this.conditions()}).execute(function(response){
+            self.load(response.records);
+        });
+    }
+
+    _render(){
+
+        // Render Card
+        if(this._card){
+            // Icon
+            this._card._component.header.icon.attr('class','me-1 bi bi-'+this._options.icon);
+            // Title
+            this._card._component.header.title.text(this.title());
+        }
+
+        // Render Table
+        if(this._table){
+
+            // Data
+            for(const [key, record] of Object.entries(this._data)){
+                this._table.add(record);
+            }
+        }
+    }
+
+    _config(form){
+
+        // timeframe
+        form.add(
+            'select',
+            {
+                name: 'timeframe',
+                label: this._builder.Locale.get('Timeframe'),
+                placeholder: this._builder.Locale.get('Select a timeframe'),
+                options: [
+                    {id: 'all', text: this._builder.Locale.get('All Time')},
+                    {id: 'today', text: this._builder.Locale.get('Today')},
+                    {id: 'missed', text: this._builder.Locale.get('Missed')},
+                ],
+                value: this._options.timeframe,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+            }
+        );
+
+        // owner
+        form.add(
+            'select',
+            {
+                name: 'owner',
+                label: this._builder.Locale.get('Owner'),
+                placeholder: this._builder.Locale.get('Select an owner'),
+                options: [
+                    {id: 'all', text: this._builder.Locale.get('All Tasks')},
+                    {id: USER_ID, text: this._builder.Locale.get('My Tasks only')},
+                ],
+                value: this._options.owner,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+            }
+        );
+
+        // archived
+        form.add(
+            'switch',
+            {
+                name: 'archived',
+                label: builder.Locale.get('Count Archived Tasks'),
+                value: this._options.archived,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+            }
+        );
+
+        // completed
+        form.add(
+            'switch',
+            {
+                name: 'completed',
+                label: builder.Locale.get('Count Completed Tasks'),
+                value: this._options.completed,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+            }
+        );
+
+        // active
+        form.add(
+            'switch',
+            {
+                name: 'active',
+                label: builder.Locale.get('Count Active Tasks Only'),
+                value: this._options.active,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+            }
+        );
+
+        // category
+        form.add(
+            'select',
+            {
+                name: 'category',
+                label: this._builder.Locale.get('Category'),
+                placeholder: this._builder.Locale.get('Select a category'),
+                options: [
+                    {id: 'all', text: this._builder.Locale.get('Any Category')},
+                    {id: 'Lead', text: 'Lead'},
+                    {id: 'Client', text: 'Client'},
+                    {id: 'Call', text: 'Call'},
+                    {id: 'Callback', text: 'Callback'},
+                    {id: 'Appointment', text: 'Appointment'},
+                ],
+                value: this._options.category,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+            }
+        );
+
+        // icon
+        form.add(
+            'select2',
+            {
+                name: 'icon',
+                label: this._builder.Locale.get('Icon'),
+                placeholder: this._builder.Locale.get('Select an icon'),
+                options: this.icons(),
+                value: this._options.icon,
+                class: {
+                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                },
+                callback:{
+                    format: function(option, component){
+                        if (!option.id) { return option.text; }
+                        return $('<span class=""><i class="me-2 text-bg-light p-1 fs-4 rounded bi bi-' +  option.element.value.toLowerCase() + '"></i>' + option.text + '</span>');
+                    },
+                },
+            }
+        );
+    }
+});
+
 // Assign a Task
 function process_function_TaskAssign(task, value, callback = null){
     builder.Widget('task',{data: task.id,unassign:false}).assign(function(){
@@ -67,958 +791,6 @@ function process_meta_TaskDeactivate(key = null){
         label: "Deactivate a Task",
         description: "Deactivate a Task",
         type: "none",
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Table Widget for Dashboard - All Tasks
-function dashboard_widget_tableTasks(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasks',
-        container,
-        {
-            title: builder.Locale.get(dashboard_meta_tableTasks('label')),
-            autoStart:true,
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'isCompleted', operator: '=', value: 0},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_tableTasks(key = null){
-    const metadata = {
-        label: "All Tasks",
-        description: "This is a table that shows all the active tasks.",
-        type: "none",
-        minSize: 8,
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Table Widget for Dashboard - All Tasks Categories
-function dashboard_widget_tableTasksCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasks',
-        container,
-        {
-            title: builder.Locale.get(dashboard_meta_tableTasksCategorized('label')),
-            autoStart:true,
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'isCompleted', operator: '=', value: 0},
-                {key: 'category', operator: '=', value: value},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_tableTasksCategorized(key = null){
-    const metadata = {
-        label: "All Tasks Categorized",
-        description: "This is a table that shows all the active tasks of the specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-        minSize: 8,
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Table Widget for Dashboard - All Daily Tasks
-function dashboard_widget_tableDailyTasks(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasks',
-        container,
-        {
-            title: builder.Locale.get(dashboard_meta_tableDailyTasks('label')),
-            autoStart:true,
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'isCompleted', operator: '=', value: 0},
-                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_tableDailyTasks(key = null){
-    const metadata = {
-        label: "All My Daily Tasks",
-        description: "This is a table that shows all the active tasks due today.",
-        type: "none",
-        minSize: 8,
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Table Widget for Dashboard - All Daily Tasks Categorized
-function dashboard_widget_tableDailyTasksCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasks',
-        container,
-        {
-            title: builder.Locale.get(dashboard_meta_tableDailyTasksCategorized('label')),
-            autoStart:true,
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'isCompleted', operator: '=', value: 0},
-                {key: 'category', operator: '=', value: value},
-                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_tableDailyTasksCategorized(key = null){
-    const metadata = {
-        label: "My Daily Tasks Categorized",
-        description: "This is a table that shows all the active tasks of the specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-        minSize: 8,
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Table Widget for Dashboard - All My Tasks
-function dashboard_widget_tableMyTasks(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasks',
-        container,
-        {
-            title: builder.Locale.get(dashboard_meta_tableMyTasks('label')),
-            autoStart:true,
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'isCompleted', operator: '=', value: 0},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_tableMyTasks(key = null){
-    const metadata = {
-        label: "All My Tasks",
-        description: "This is a table that shows your active tasks.",
-        type: "none",
-        minSize: 8,
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Table Widget for Dashboard - All My Tasks Categorized
-function dashboard_widget_tableMyTasksCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasks',
-        container,
-        {
-            title: builder.Locale.get(dashboard_meta_tableMyTasksCategorized('label')),
-            autoStart:true,
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'isCompleted', operator: '=', value: 0},
-                {key: 'category', operator: '=', value: value},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_tableMyTasksCategorized(key = null){
-    const metadata = {
-        label: "My Tasks Categorized",
-        description: "This is a table that shows your active tasks of the specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-        minSize: 8,
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Table Widget for Dashboard - All My Daily Tasks
-function dashboard_widget_tableMyDailyTasks(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasks',
-        container,
-        {
-            title: builder.Locale.get(dashboard_meta_tableMyDailyTasks('label')),
-            autoStart:true,
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'isCompleted', operator: '=', value: 0},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_tableMyDailyTasks(key = null){
-    const metadata = {
-        label: "All My Daily Tasks",
-        description: "This is a table that shows your active tasks due today.",
-        type: "none",
-        minSize: 8,
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Table Widget for Dashboard - All My Tasks Categorized
-function dashboard_widget_tableMyDailyTasksCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasks',
-        container,
-        {
-            title: builder.Locale.get(dashboard_meta_tableMyDailyTasksCategorized('label')),
-            autoStart:true,
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'isCompleted', operator: '=', value: 0},
-                {key: 'category', operator: '=', value: value},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_tableMyDailyTasksCategorized(key = null){
-    const metadata = {
-        label: "My Daily Tasks Categorized",
-        description: "This is a table that shows your active tasks of the specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-        minSize: 8,
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - All Tasks
-function dashboard_widget_countTasks(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get('Tasks'),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'primary',
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '<>', value: 1},
-                {key: 'isCompleted', operator: '<>', value: 1},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countTasks(key = null){
-    const metadata = {
-        label: "Count All Tasks",
-        description: "This is a count of all the active tasks.",
-        type: "none",
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - All Tasks Categorized
-function dashboard_widget_countTasksCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get('All '+value+'s'),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'primary',
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '<>', value: 1},
-                {key: 'isCompleted', operator: '<>', value: 1},
-                {key: 'category', operator: '=', value: value},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countTasksCategorized(key = null){
-    const metadata = {
-        label: "Count All Tasks of Category",
-        description: "This is a count of all the active tasks of a specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - All Daily Tasks
-function dashboard_widget_countDailyTasks(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get("Today's Tasks"),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'warning',
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '<>', value: 1},
-                {key: 'isCompleted', operator: '<>', value: 1},
-                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countDailyTasks(key = null){
-    const metadata = {
-        label: "Count All Daily Tasks",
-        description: "This is a count of all the daily active tasks.",
-        type: "none",
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - All Daily Tasks Categorized
-function dashboard_widget_countDailyTasksCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get("Today's "+value),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'warning',
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '<>', value: 1},
-                {key: 'isCompleted', operator: '<>', value: 1},
-                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
-                {key: 'category', operator: '=', value: value},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countDailyTasksCategorized(key = null){
-    const metadata = {
-        label: "Count of All Daily Tasks of Category",
-        description: "This is a count of all the daily active tasks of a specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - All Missed Tasks
-function dashboard_widget_countMissedTasks(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get("Missed Tasks"),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'danger',
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '<>', value: 1},
-                {key: 'isCompleted', operator: '<>', value: 1},
-                {key: 'due', operator: '<', value: moment().format('YYYY-MM-DD HH:mm:ss')},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countMissedTasks(key = null){
-    const metadata = {
-        label: "Count of All Missed Tasks",
-        description: "This is a count of all the active tasks that are overdue.",
-        type: "none",
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - All Missed Tasks Categorized
-function dashboard_widget_countMissedTasksCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get("Missed "+value),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'danger',
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '<>', value: 1},
-                {key: 'isCompleted', operator: '<>', value: 1},
-                {key: 'due', operator: '<', value: moment().format('YYYY-MM-DD HH:mm:ss')},
-                {key: 'category', operator: '=', value: value},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countMissedTasksCategorized(key = null){
-    const metadata = {
-        label: "Count of All Missed Tasks of Category",
-        description: "This is a count of all the missed active tasks of a specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - All Completed Tasks
-function dashboard_widget_countCompletedTasks(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get("Completed Tasks"),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'success',
-            conditions:[
-                {key: 'isCompleted', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countCompletedTasks(key = null){
-    const metadata = {
-        label: "Count of All Completed Tasks",
-        description: "This is a count of all the active tasks that are completed.",
-        type: "none",
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - All Completed Tasks Categorized
-function dashboard_widget_countCompletedTasksCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get("Completed "+value),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'success',
-            conditions:[
-                {key: 'isCompleted', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'category', operator: '=', value: value},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countCompletedTasksCategorized(key = null){
-    const metadata = {
-        label: "Count of All Completed Tasks of Category",
-        description: "This is a count of all the completed tasks of a specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - All Completed Tasks Today
-function dashboard_widget_countCompletedTasksToday(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get("Today's Completed Tasks"),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'success',
-            conditions:[
-                {key: 'isCompleted', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'completedOn', operator: '>', value: moment().format('YYYY-MM-DD')},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countCompletedTasksToday(key = null){
-    const metadata = {
-        label: "Count of All Completed Tasks Today",
-        description: "This is a count of all the tasks that were completed today.",
-        type: "none",
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - All Completed Tasks Today Categorized
-function dashboard_widget_countCompletedTasksTodayCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get("Today's Completed "+value),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'primary',
-            conditions:[
-                {key: 'isCompleted', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'category', operator: '=', value: value},
-                {key: 'completedOn', operator: '>', value: moment().format('YYYY-MM-DD')},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countCompletedTasksTodayCategorized(key = null){
-    const metadata = {
-        label: "Count of All Completed Tasks Today of Category",
-        description: "This is a count of all the completed tasks of today of a specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - My Tasks
-function dashboard_widget_countMyTasks(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get("My Tasks"),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'primary',
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '<>', value: 1},
-                {key: 'isCompleted', operator: '<>', value: 1},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countMyTasks(key = null){
-    const metadata = {
-        label: "Count My Tasks",
-        description: "This is a count of my active tasks.",
-        type: "none",
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - My Tasks Categorized
-function dashboard_widget_countMyTasksCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get("My "+value),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'primary',
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '<>', value: 1},
-                {key: 'isCompleted', operator: '<>', value: 1},
-                {key: 'category', operator: '=', value: value},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countMyTasksCategorized(key = null){
-    const metadata = {
-        label: "Count My Tasks of Category",
-        description: "This is a count of my active tasks of a specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - My Daily Tasks
-function dashboard_widget_countMyDailyTasks(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get("My Tasks Today"),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'warning',
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '<>', value: 1},
-                {key: 'isCompleted', operator: '<>', value: 1},
-                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countMyDailyTasks(key = null){
-    const metadata = {
-        label: "Count My Daily Tasks",
-        description: "This is a count of my daily active tasks.",
-        type: "none",
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - My Daily Tasks Categorized
-function dashboard_widget_countMyDailyTasksCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get("My "+value+" Today"),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'warning',
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '<>', value: 1},
-                {key: 'isCompleted', operator: '<>', value: 1},
-                {key: 'due', operator: '<', value: moment().add(1, 'days').format('YYYY-MM-DD')},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-                {key: 'category', operator: '=', value: value},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countMyDailyTasksCategorized(key = null){
-    const metadata = {
-        label: "Count of My Daily Tasks of Category",
-        description: "This is a count of my daily active tasks of a specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - My Missed Tasks
-function dashboard_widget_countMyMissedTasks(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get('My Missed Tasks'),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'danger',
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '<>', value: 1},
-                {key: 'isCompleted', operator: '<>', value: 1},
-                {key: 'due', operator: '<', value: moment().format('YYYY-MM-DD HH:mm:ss')},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countMyMissedTasks(key = null){
-    const metadata = {
-        label: "Count of My Missed Tasks",
-        description: "This is a count of my active tasks that are overdue.",
-        type: "none",
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - My Missed Tasks Categorized
-function dashboard_widget_countMyMissedTasksCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get('My Missed '+value),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'danger',
-            conditions:[
-                {key: 'isActive', operator: '=', value: 1},
-                {key: 'isArchived', operator: '<>', value: 1},
-                {key: 'isCompleted', operator: '<>', value: 1},
-                {key: 'due', operator: '<', value: moment().format('YYYY-MM-DD HH:mm:ss')},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-                {key: 'category', operator: '=', value: value},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countMyMissedTasksCategorized(key = null){
-    const metadata = {
-        label: "Count of My Missed Tasks of Category",
-        description: "This is a count of my missed active tasks of a specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - My Completed Tasks
-function dashboard_widget_countMyCompletedTasks(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get('My Completed Tasks'),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'success',
-            conditions:[
-                {key: 'isCompleted', operator: '=', value: 1},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countMyCompletedTasks(key = null){
-    const metadata = {
-        label: "Count of My Completed Tasks",
-        description: "This is a count of my active tasks that are completed.",
-        type: "none",
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - My Completed Tasks Categorized
-function dashboard_widget_countMyCompletedTasksCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get('My Completed '+value),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'success',
-            conditions:[
-                {key: 'isCompleted', operator: '=', value: 1},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'category', operator: '=', value: value},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countMyCompletedTasksCategorized(key = null){
-    const metadata = {
-        label: "Count of My Completed Tasks of Category",
-        description: "This is a count of my completed tasks of a specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - My Completed Tasks Today
-function dashboard_widget_countMyCompletedTasksToday(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get('My Completed Tasks Today'),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'success',
-            conditions:[
-                {key: 'isCompleted', operator: '=', value: 1},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'completedOn', operator: '>', value: moment().format('YYYY-MM-DD')},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countMyCompletedTasksToday(key = null){
-    const metadata = {
-        label: "Count of My Completed Tasks Today",
-        description: "This is a count of my tasks that are completed today.",
-        type: "none",
-    };
-    return metadata[key] ? metadata[key] : metadata;
-}
-
-// Count Widget for Dashboard - My Completed Tasks Today Categorized
-function dashboard_widget_countMyCompletedTasksTodayCategorized(value = null){
-    var container = $(document.createElement('div'));
-    builder.Widget(
-        'widgetTasksCounter',
-        container,
-        {
-            title: builder.Locale.get('My Completed '+value+' Today'),
-            autoStart:true,
-            icon: 'check2-square',
-            color: 'success',
-            conditions:[
-                {key: 'isCompleted', operator: '=', value: 1},
-                {key: 'assignedTo', operator: '=', value: USER_ID},
-                {key: 'category', operator: '=', value: value},
-                {key: 'isArchived', operator: '=', value: 0},
-                {key: 'completedOn', operator: '>', value: moment().format('YYYY-MM-DD')},
-            ],
-        },
-    );
-    return container;
-}
-function dashboard_meta_countMyCompletedTasksTodayCategorized(key = null){
-    const metadata = {
-        label: "Count of My Completed Tasks Today of Category",
-        description: "This is a count of my completed tasks of today of a specified category.",
-        type: "select",
-        value: "Callback",
-        options: [
-            {id: 'Lead', text: 'Lead'},
-            {id: 'Client', text: 'Client'},
-            {id: 'Call', text: 'Call'},
-            {id: 'Callback', text: 'Callback'},
-            {id: 'Appointment', text: 'Appointment'},
-        ],
     };
     return metadata[key] ? metadata[key] : metadata;
 }
