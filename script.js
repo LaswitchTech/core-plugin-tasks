@@ -4,7 +4,6 @@ if(typeof dashboard !== "undefined"){
     // Register - Task Counter Widget
     // A simple counter widget for the dashboard to count tasks based on conditions
     // by default it counts all tasks, but can be filtered by owner or other conditions
-
     dashboard.add('counter-tasks', class extends dashboard.Widget {
         _init(){
             this._properties = {
