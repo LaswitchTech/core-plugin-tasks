@@ -43,14 +43,18 @@ builder.add('renderers', 'task.assignedTo.username', function(value, data, type)
 })
 builder.add('renderers', 'task.due', function(value, data, type){
 
+    // Handle sorting
+    if (type === 'sort') {
+        return value ? Date.parse(value) : Number.MAX_SAFE_INTEGER;
+    }
+
+    // Check if value is null
+    if(value === null || value === ''){
+        return '';
+    }
+
     // Check for required data
     if(typeof data.task !== 'undefined' || typeof data.due !== 'undefined'){
-
-        // Handle sorting
-        // console.log(type);
-        if (type === 'sort') {
-            return value ? Date.parse(value) : Number.MAX_SAFE_INTEGER;
-        }
 
         // Compare date to now and set background color
         var bg = 'rounded px-2 py-1';
