@@ -1,3 +1,182 @@
+const tasksDefinition = [
+    {
+        targets: 0,
+        visible: false,
+        title: builder.Locale.get('ID'),
+        name: 'id',
+        data: 'id',
+    },
+    {
+        targets: 1,
+        visible: false,
+        title: builder.Locale.get('Category'),
+        className: 'min-md',
+        name: 'category',
+        data: 'category',
+        defaultContent: '',
+        responsivePriority: 100,
+    },
+    {
+        targets: 2,
+        visible: true,
+        title: builder.Locale.get('Label'),
+        className: 'all',
+        name: 'label',
+        data: 'label',
+        width: '50%',
+        defaultContent: '',
+        responsivePriority: 1,
+        render: function(data, type, row, meta) {
+            return builder.Render('task.label', data, row, type);
+        },
+    },
+    {
+        targets: 3,
+        visible: false,
+        title: builder.Locale.get('Name'),
+        className: 'min-md',
+        name: 'name',
+        data: 'root.target.vcard.name',
+        defaultContent: '',
+        responsivePriority: 110,
+    },
+    {
+        targets: 4,
+        visible: false,
+        title: builder.Locale.get('Address'),
+        className: 'min-md',
+        name: 'address',
+        data: 'root.target.vcard.address',
+        defaultContent: '',
+        responsivePriority: 120,
+    },
+    {
+        targets: 5,
+        visible: false,
+        title: builder.Locale.get('City'),
+        className: 'min-md',
+        name: 'city',
+        data: 'root.target.vcard.city',
+        defaultContent: '',
+        responsivePriority: 130,
+    },
+    {
+        targets: 6,
+        visible: false,
+        title: builder.Locale.get('State'),
+        className: 'min-md',
+        name: 'state',
+        data: 'root.target.vcard.state',
+        defaultContent: '',
+        responsivePriority: 140,
+    },
+    {
+        targets: 7,
+        visible: false,
+        title: builder.Locale.get('Country'),
+        className: 'min-md',
+        name: 'country',
+        data: 'root.target.vcard.country',
+        defaultContent: '',
+        responsivePriority: 150,
+    },
+    {
+        targets: 8,
+        visible: false,
+        title: builder.Locale.get('Phone'),
+        className: 'min-md',
+        name: 'phone',
+        data: 'target.vcard.phone',
+        defaultContent: '',
+        responsivePriority: 160,
+    },
+    {
+        targets: 9,
+        visible: false,
+        title: builder.Locale.get('Mobile'),
+        className: 'min-md',
+        name: 'mobile',
+        data: 'target.vcard.mobile',
+        defaultContent: '',
+        responsivePriority: 170,
+    },
+    {
+        targets: 10,
+        visible: false,
+        title: builder.Locale.get('Tollfree'),
+        className: 'min-md',
+        name: 'tollfree',
+        data: 'target.vcard.tollfree',
+        defaultContent: '',
+        responsivePriority: 180,
+    },
+    {
+        targets: 11,
+        visible: false,
+        title: builder.Locale.get('Status'),
+        className: 'min-md',
+        name: 'status',
+        data: 'progress',
+        defaultContent: '',
+        responsivePriority: 200,
+        render: function(data, type, row, meta) {
+            return builder.Render('task.progress', data, row, type);
+        },
+    },
+    {
+        targets: 12,
+        visible: true,
+        title: builder.Locale.get('Task'),
+        className: 'min-md',
+        name: 'task',
+        data: 'process',
+        defaultContent: '',
+        responsivePriority: 10,
+        render: function(data, type, row, meta) {
+            return builder.Render('task.process', data, row, type);
+        },
+    },
+    {
+        targets: 13,
+        visible: true,
+        title: builder.Locale.get('Priority'),
+        className: 'min-md',
+        name: 'priority',
+        data: 'priority',
+        defaultContent: 0,
+        responsivePriority: 20,
+        render: function(data, type, row, meta) {
+            return builder.Render('task.priority', data, row, type);
+        },
+    },
+    {
+        targets: 14,
+        visible: true,
+        title: builder.Locale.get('Assigned To'),
+        className: 'min-md',
+        name: 'assignedTo',
+        data: 'assignedTo.username',
+        defaultContent: '',
+        responsivePriority: 30,
+        render: function(data, type, row, meta) {
+            return builder.Render('task.assignedTo.username', data, row, type);
+        },
+    },
+    {
+        targets: 15,
+        visible: true,
+        title: builder.Locale.get('Due'),
+        className: 'min-md',
+        name: 'due',
+        data: 'due',
+        defaultContent: '',
+        responsivePriority: 40,
+        render: function(data, type, row, meta) {
+            return builder.Render('task.due', data, row, type);
+        },
+    },
+];
+
 builder.add('renderers', 'task.label', function(value, data, type){
     if(typeof data.task !== 'undefined' || typeof data.label !== 'undefined'){
         return '<div>' + builder.Parser.parse(value) + '</div>';
@@ -1100,104 +1279,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
         this._properties.datatable.buttons = [];
 
         // Set Column Definitions
-        this._properties.datatable.columnDefs = [
-            {
-                targets: 0,
-                visible: false,
-                title: builder.Locale.get('ID'),
-                name: 'id',
-                data: 'id',
-            },
-            {
-                targets: 1,
-                visible: false,
-                title: builder.Locale.get('Category'),
-                className: 'min-md',
-                name: 'category',
-                data: 'category',
-                defaultContent: '',
-                responsivePriority: 100,
-            },
-            {
-                targets: 2,
-                visible: true,
-                title: builder.Locale.get('Label'),
-                className: 'all',
-                name: 'label',
-                data: 'label',
-                width: '50%',
-                defaultContent: '',
-                responsivePriority: 1,
-                render: function(data, type, row, meta) {
-                    return self._builder.Render('task.label', data, row, type);
-                },
-            },
-            {
-                targets: 3,
-                visible: false,
-                title: builder.Locale.get('Status'),
-                className: 'min-md',
-                name: 'status',
-                data: 'progress',
-                defaultContent: '',
-                responsivePriority: 200,
-                render: function(data, type, row, meta) {
-                    return self._builder.Render('task.progress', data, row, type);
-                },
-            },
-            {
-                targets: 4,
-                visible: true,
-                title: builder.Locale.get('Task'),
-                className: 'min-md',
-                name: 'task',
-                data: 'process',
-                defaultContent: '',
-                responsivePriority: 10,
-                render: function(data, type, row, meta) {
-                    return self._builder.Render('task.process', data, row, type);
-                },
-            },
-            {
-                targets: 5,
-                visible: true,
-                title: builder.Locale.get('Priority'),
-                className: 'min-md',
-                name: 'priority',
-                data: 'priority',
-                defaultContent: 0,
-                responsivePriority: 20,
-                render: function(data, type, row, meta) {
-                    return self._builder.Render('task.priority', data, row, type);
-                },
-            },
-            {
-                targets: 6,
-                visible: true,
-                title: builder.Locale.get('Assigned To'),
-                className: 'min-md',
-                name: 'assignedTo',
-                data: 'assignedTo.username',
-                defaultContent: '',
-                responsivePriority: 30,
-                render: function(data, type, row, meta) {
-                    return self._builder.Render('task.assignedTo.username', data, row, type);
-                },
-            },
-            {
-                targets: 7,
-                visible: true,
-                title: builder.Locale.get('Due'),
-                className: 'min-md',
-                name: 'due',
-                data: 'due',
-                defaultContent: '',
-                responsivePriority: 40,
-                render: function(data, type, row, meta) {
-                    return self._builder.Render('task.due', data, row, type);
-                },
-            },
-        ];
+        this._properties.datatable.columnDefs = tasksDefinition;
 
         // Set Column Order
         this._properties.datatable.order = [[7, 'asc']];
@@ -1760,215 +1842,6 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
     }
 });
 builder.add('widgets','widgetTasks', class extends builder.ComponentClass {
-
-    _init(){
-        this._properties = {
-            class: {
-                component: null,
-            },
-            data: null,
-            title: null,
-            conditions: [],
-            interval: 10000,
-            autoStart: false,
-            callback: {},
-        };
-        this._widget = null;
-        this._card = null;
-    }
-
-    _create(){
-
-        // Set Self
-        const self = this;
-
-        // Create Component
-        this._component = $(document.createElement('div')).attr({
-            'id': 'tasks' + this._id,
-            'class': 'widgetTasks',
-        });
-        this._component.id = this._component.attr('id');
-
-        // Add class to the component
-        if(this._properties.class.component){
-            this._component.addClass(this._properties.class.component);
-        }
-
-        // Create the Card
-        this._builder.Component(
-            'card',
-            this._component,
-            {
-                class: {
-                    component: 'shadow rounded',
-                },
-                icon: "list-task",
-                title: this._properties.title,
-            },
-            function(card, component){
-
-                // Set _card
-                self.card(card);
-
-                // Styling
-                component.body.addClass('p-0');
-
-                // Create the Widget
-                self._builder.Widget(
-                    'tasks',
-                    self.card()._component.body,
-                    self._properties,
-                    function(widget, component){
-
-                        // Set _widget
-                        self.widget(widget);
-                    },
-                );
-            },
-        );
-    }
-
-    widget(widget = null){
-        if(widget){
-            this._widget = widget;
-        }
-        return this._widget;
-    }
-
-    card(card = null){
-        if(card){
-            this._card = card;
-        }
-        return this._card;
-    }
-});
-builder.add('widgets','widgetTasksCounter', class extends builder.ComponentClass {
-
-    _init(){
-        this._properties = {
-            class: {
-                component: null,
-            },
-            data: null,
-            color: 'primary',
-            icon: 'circle',
-            title: null,
-            conditions: [],
-            interval: 10000,
-            autoStart: false,
-            callback: {},
-        };
-        this._badge = null;
-    }
-
-    _create(){
-
-        // Set Self
-        const self = this;
-
-        // Create Component
-        this._component = $(document.createElement('div')).attr({
-            'id': 'tasks' + this._id,
-            'class': 'widgetTasks',
-        });
-        this._component.id = this._component.attr('id');
-
-        // Add class to the component
-        if(this._properties.class.component){
-            this._component.addClass(this._properties.class.component);
-        }
-
-        // Create the Badge
-        this._builder.Component(
-            "badge",
-            this._component,
-            {
-                class: {
-                    component: 'shadow',
-                },
-                icon: this._properties.icon,
-                color: this._properties.color,
-            },
-            function(badge,component){
-
-                // Set the badge
-                self.badge(badge);
-
-                // Set Content
-                component.label = $(document.createElement("h5")).addClass("m-0").text(self._properties.title).appendTo(component.content);
-                component.count = $(document.createElement("p")).addClass("m-0").appendTo(component.content);
-
-                // Check if autoStart is enabled
-                if(self._properties.autoStart){
-
-                    // Start
-                    self.start();
-                }
-            },
-        );
-    }
-
-    load(records = null){
-
-        // Set Self
-        const self = this;
-
-        // Check if records are provided
-        if(records !== null && Object.entries(records).length > 0){
-
-            // Loop through the records
-            for(const [key, record] of Object.entries(records)){
-                this.add(record);
-            }
-            return this;
-        }
-
-        // AJAX Request
-        API.endpoint('/tasks/count').data({conditions: this._properties.conditions}).execute(function(response){
-            self.badge()._component.count.text(response.count);
-        });
-
-        return this;
-    }
-
-    start(){
-
-        // Set Self
-        const self = this;
-
-        // Check if the interval is already set
-        if(this._interval){
-            console.warn('Interval is already set, stopping the previous one.');
-            clearInterval(this._interval);
-        }
-
-        // Initial Load
-        this.load();
-
-        // Set the interval to check for changes
-        this._interval = setInterval(function(){
-            self.load();
-        }, this._properties.interval);
-    }
-
-    stop(){
-        // Check if the interval is set
-        if(this._interval){
-            clearInterval(this._interval);
-            this._interval = null;
-        } else {
-            console.warn('No interval is currently set.');
-        }
-    }
-
-    badge(badge = null){
-        if(badge){
-            this._badge = badge;
-        }
-        return this._badge;
-    }
-});
-builder.add('widgets','tasksMenu', class extends builder.ComponentClass {
 
     _init(){
         this._properties = {
