@@ -20,8 +20,6 @@ class TasksPostModel extends TasksModel {
 
             // Handle specific fields
             switch($key){
-                case 'id':
-                    break;
                 case 'link':
                     // Only process if not empty
                     if(!empty($value) && !is_null($value)){
@@ -36,7 +34,6 @@ class TasksPostModel extends TasksModel {
                     }
                     break;
                 default:
-                    unset($record[$key]);
                     break;
             }
         }
