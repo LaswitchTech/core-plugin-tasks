@@ -65,10 +65,10 @@
     },
     "8": {
         "Field": "progress",
-        "Type": "bigint(20)",
+        "Type": "int(11)",
         "Null": "NO",
         "Key": "",
-        "Default": null,
+        "Default": "0",
         "Extra": ""
     },
     "9": {
