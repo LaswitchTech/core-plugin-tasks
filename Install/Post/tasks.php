@@ -20,13 +20,16 @@ class TasksPostModel extends TasksModel {
                 case 'id':
                     break;
                 case 'link':
-                    // Replace /plugin/leads/details with /crm/details
-                    if(str_starts_with($value, '/plugin/leads/details')){
-                        $record[$key] = str_replace('/plugin/leads/details', '/crm/details', $value);
-                    }
-                    // Replace /plugin/clients/details with /clients/details
-                    if(str_starts_with($value, '/plugin/clients/details')){
-                        $record[$key] = str_replace('/plugin/clients/details', '/clients/details', $value);
+                    // Only process if not empty
+                    if(!empty($value) && !is_null($value)){
+                        // Replace /plugin/leads/details with /crm/details
+                        if(str_starts_with($value, '/plugin/leads/details')){
+                            $record[$key] = str_replace('/plugin/leads/details', '/crm/details', $value);
+                        }
+                        // Replace /plugin/clients/details with /clients/details
+                        if(str_starts_with($value, '/plugin/clients/details')){
+                            $record[$key] = str_replace('/plugin/clients/details', '/clients/details', $value);
+                        }
                     }
                     break;
                 default:
