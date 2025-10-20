@@ -5,6 +5,7 @@
             builder.Layout('index',"#layout",{
                 endpoint: '/tasks/fetchAll',
                 conditions: [
+                    {key: 'assignedTo', operator: '=', value: USER_ID},
                     {key: 'isActive', operator: '=', value: 1},
                     {key: 'isArchived', operator: '=', value: 0},
                     {key: 'isCompleted', operator: '=', value: 0},
