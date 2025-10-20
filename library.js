@@ -194,14 +194,25 @@ builder.add('renderers', 'task.progress', function(value, data, type){
     return '<div>' + value + '</div>';
 })
 builder.add('renderers', 'task.process', function(value, data, type){
+    var current = {};
+    var last = {};
     if(typeof data.task !== 'undefined' || typeof data.process !== 'undefined'){
         for(const [progress, step] of Object.entries(value)){
             for(const [order, task] of Object.entries(step.tasks)){
+                last.step = step;
+                last.task = task;
                 if(!task.isCompleted){
-                    return '<div><h5><span class="badge text-bg-'+step.color+'"><i class="me-1 bi bi-'+step.icon+'"></i>'+task.name+'</span></h5></div>';
+                    current.step = step;
+                    current.task = task;
                 }
             }
         }
+    }
+    if(typeof current.step !== 'undefined' && typeof current.task !== 'undefined'){
+        return '<div><h5><span class="badge text-bg-'+current.step.color+'"><i class="me-1 bi bi-'+current.step.icon+'"></i>'+current.task.name+'</span></h5></div>';
+    }
+    if(typeof last.step !== 'undefined' && typeof last.task !== 'undefined'){
+        return '<div><h5><span class="badge text-bg-'+last.step.color+'"><i class="me-1 bi bi-'+last.step.icon+'"></i>'+last.task.name+'</span></h5></div>';
     }
     return '<div>' + value + '</div>';
 })
