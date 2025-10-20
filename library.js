@@ -202,8 +202,10 @@ builder.add('renderers', 'task.process', function(value, data, type){
                 last.step = step;
                 last.task = task;
                 if(!task.isCompleted){
-                    current.step = step;
-                    current.task = task;
+                    if(typeof current.step === 'undefined' || typeof current.task === 'undefined'){
+                        current.step = step;
+                        current.task = task;
+                    }
                 }
             }
         }
