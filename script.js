@@ -395,6 +395,12 @@ if(typeof dashboard !== "undefined"){
             // Set Self
             const self = this;
 
+            // Set Column Definitions
+            const columnDefs = [];
+            for(const [key, definition] of Object.entries(tasksDefinition)){
+                columnDefs.push(definition);
+            }
+
             // Create the Card
             this._builder.Component(
                 'card',
@@ -468,7 +474,7 @@ if(typeof dashboard !== "undefined"){
                                     ]
                                 },
                                 buttons: [],
-                                columnDefs: tasksDefinition,
+                                columnDefs: columnDefs,
                                 order: [[15, 'asc']],
                                 initComplete: function(param) {
                                     $(param.nTableWrapper).find('.dataTables_filter input').attr({
