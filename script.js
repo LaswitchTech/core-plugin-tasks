@@ -434,6 +434,15 @@ if(typeof dashboard !== "undefined"){
                                         self._builder.Widget('task',{data: data.id}).view();
                                     }
                                 },
+                                reschedule:{
+                                    label:'Re-Schedule',
+                                    icon:'calendar-week',
+                                    action:function(event, table, dt, node, row, data){
+                                        self._builder.Widget('task',{data: data.id}).schedule(function(response){
+                                            dt.row(row).data(response.record).draw();
+                                        });
+                                    }
+                                },
                                 archive:{
                                     label: self._builder.Locale.get('Archive'),
                                     icon: 'archive',
