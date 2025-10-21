@@ -1292,7 +1292,10 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
         this._properties.datatable.buttons = [];
 
         // Set Column Definitions
-        this._properties.datatable.columnDefs = tasksDefinition;
+        this._properties.datatable.columnDefs = [];
+        for(const [key, definition] of Object.entries(tasksDefinition)){
+            this._properties.datatable.columnDefs.push(definition);
+        }
 
         // Set Column Order
         this._properties.datatable.order = [[7, 'asc']];
