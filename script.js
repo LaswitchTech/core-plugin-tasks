@@ -13,7 +13,7 @@ if(typeof dashboard !== "undefined"){
                 minSize: 1,
                 maxSize: 12,
                 interval: 10000,
-                autoStart: true,
+                autoStart: false,
             };
             this._options = {
                 title: this._options.title || this._properties.label,
@@ -299,7 +299,7 @@ if(typeof dashboard !== "undefined"){
                 minSize: 1,
                 maxSize: 12,
                 interval: 10000,
-                autoStart: true,
+                autoStart: false,
             };
             this._options = {
                 title: this._options.title || this._properties.label,
