@@ -966,7 +966,7 @@ builder.add('widgets','task', class extends builder.ComponentClass {
             {
                 icon: "calendar",
                 title: this._builder.Locale.get("Reschedule task"),
-                color: 'warning',
+                color: 'teal',
                 callback: {
                     load: function(component, modal){
 
@@ -1487,6 +1487,160 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
 
                                 // Log the error and reject the promise
                                 console.error('Error in assign modal:', e);
+                                modal.hide();
+                                reject(e);
+                            }
+                        });
+                    },
+                },
+            },
+            function(modal,component){
+
+                // Styling
+                component.body.addClass('p-0');
+
+                // Show the modal
+                modal.show();
+            },
+        );
+    }
+
+    schedule(callback = null){
+
+        // Set Self
+        const self = this;
+
+        // Check if data is available
+        if(!this._properties.data || (Array.isArray(this._properties.data) && this._properties.data.length === 0) || (typeof this._properties.data === "object" && Object.keys(this._properties.data).length === 0)){
+            console.error('No task data available to assign.');
+            return;
+        }
+
+        // Create the Modal
+        this._builder.Component(
+            "modal",
+            {
+                icon: "calendar",
+                title: this._builder.Locale.get("Reschedule task(s)"),
+                color: 'teal',
+                callback: {
+                    load: function(component, modal){
+
+                        // Set the component
+                        const parent = component;
+
+                        // Promise to fetch data
+                        return new Promise((resolve, reject) => {
+                            try {
+
+                                // Create the Form
+                                self._builder.Utility(
+                                    'form',
+                                    component.body,
+                                    {
+                                        callback: {
+                                            val: function(values){
+
+                                                // Set the default values
+                                                values.due = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+                                                // Set the date and time
+                                                values.date = values.date || new Date().toISOString().slice(0, 10);
+                                                values.time = values.time || new Date().toISOString().slice(11, 16);
+
+                                                // Combine date and time into due
+                                                values.due = values.date + ' ' + values.time;
+
+                                                // Remove date and time from values
+                                                delete values.date;
+                                                delete values.time;
+
+                                                // Return the values
+                                                return values;
+                                            },
+                                            submit: function(form){
+
+                                                // Show the modal spinner
+                                                modal.spinner(true);
+
+                                                // Create an array to hold promises
+                                                const promises = [];
+
+                                                // Create a promise for each record
+                                                for(const [key, record] of Object.entries(self._properties.data)){
+                                                    promises.push(function(bar){
+                                                        return new Promise((res, rej) => {
+
+                                                            // AJAX Request
+                                                            API.endpoint('/tasks/update?id='+record.id).data(form.val()).execute(function(response){
+                                                                bar.removeClass('text-bg-danger text-bg-success').addClass('text-bg-primary');
+                                                                res();
+                                                            },function(xhr, status, error){
+                                                                bar.removeClass('text-bg-primary text-bg-success').addClass('text-bg-danger');
+                                                                rej(error);
+                                                            });
+                                                        });
+                                                    });
+                                                }
+
+                                                // Execute the promises with loader
+                                                self._loader('teal', promises, function(){
+
+                                                    // Check if a callback is provided
+                                                    if (typeof callback === 'function') {
+                                                        callback(self._properties.data);
+                                                    }
+
+                                                    // Close the modal
+                                                    modal.hide();
+                                                });
+                                            },
+                                        }
+                                    },
+                                    function(form,component){
+
+                                        // Add event listener on the modal submit button
+                                        parent.dialog.content.footer.submit.click(function(e){
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            form.submit();
+                                        });
+
+                                        // date
+                                        form.add(
+                                            'date',
+                                            {
+                                                name: 'date',
+                                                label: self._builder.Locale.get('Date'),
+                                                placeholder: self._builder.Locale.get('Enter a date'),
+                                                class: {
+                                                    component: 'bg-gray-200 p-3 py-2 pb-0 rounded-0',
+                                                },
+                                                value: new Date().toISOString().slice(0, 10),
+                                            }
+                                        );
+
+                                        // time
+                                        form.add(
+                                            'time',
+                                            {
+                                                name: 'time',
+                                                label: self._builder.Locale.get('Time'),
+                                                placeholder: self._builder.Locale.get('Enter a time'),
+                                                class: {
+                                                    component: 'bg-gray-200 p-3 py-2 rounded-0',
+                                                },
+                                                value: new Date().toISOString().slice(11, 16),
+                                            }
+                                        );
+
+                                        // Resolve the promise
+                                        resolve();
+                                    },
+                                );
+                            } catch(e) {
+
+                                // Log the error and reject the promise
                                 modal.hide();
                                 reject(e);
                             }

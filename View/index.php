@@ -22,6 +22,15 @@
                             builder.Widget('task',{data: data.id}).view();
                         }
                     },
+                    reschedule:{
+                        label:'Re-Schedule',
+                        icon:'calendar-week',
+                        action:function(event, table, dt, node, row, data){
+                            builder.Widget('task',{data: data.id}).schedule(function(response){
+                                dt.row(row).data(response.record).draw();
+                            });
+                        }
+                    },
                     archive:{
                         label:'Archive',
                         icon:'archive',
@@ -60,6 +69,24 @@
                         text: '<i class="bi bi-person-x"></i><span class="ms-2 d-xxl-inline d-none">'+builder.Locale.get('Unassign')+'</span>',
                         action:function(e, dt, node, config){
                             builder.Widget('tasks',{data: dt.rows({ selected: true }).data().toArray(),render:false}).unassign(function(records){
+
+                                // Refresh the records in the table
+                                dt.rows({ selected: true }).data(records).draw();
+
+                                // Deselect all rows
+                                dt.rows().deselect();
+                            });
+                        },
+                    },
+                    {
+                        extend : 'selected',
+                        className : 'btn-teal requires-selection d-none',
+                        init: function (dt, node){
+                            $(node).removeClass('btn-secondary');
+                        },
+                        text: '<i class="bi bi-calendar-week"></i><span class="ms-2 d-xxl-inline d-none">'+builder.Locale.get('Re-schedule')+'</span>',
+                        action:function(e, dt, node, config){
+                            builder.Widget('tasks',{data: dt.rows({ selected: true }).data().toArray(),render:false}).schedule(function(records){
 
                                 // Refresh the records in the table
                                 dt.rows({ selected: true }).data(records).draw();
