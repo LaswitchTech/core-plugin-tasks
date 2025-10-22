@@ -2070,9 +2070,10 @@ builder.add('widgets','widgetTasks', class extends builder.ComponentClass {
             'data-bs-placement': 'bottom',
             'data-bs-title': self._builder.Locale.get('Tasks'),
         }).appendTo(this._component);
+        this._component.btn.animate = $(document.createElement('div')).appendTo(this._component.btn);
         this._component.btn.icon = $(document.createElement('i')).attr({
             'class': 'fs-4 bi bi-list-task',
-        }).appendTo(this._component.btn);
+        }).appendTo(this._component.btn.animate);
         this._component.btn.badge = $(document.createElement('span')).attr({
             'class': 'position-absolute top-25 start-75 translate-middle border border-light rounded-circle text-bg-teal',
         }).appendTo(this._component.btn);
@@ -2218,8 +2219,10 @@ builder.add('widgets','widgetTasks', class extends builder.ComponentClass {
                 .hide();
         if(this._component.menu.list.find('[data-priority]').filter((_, el) => +$(el).data('priority') > +this._priority).length > 0){
             this._component.btn.badge.show();
+            this._component.btn.animate.addClass('animate-pulse');
         } else {
             this._component.btn.badge.hide();
+            this._component.btn.animate.removeClass('animate-pulse');
         }
     }
 
