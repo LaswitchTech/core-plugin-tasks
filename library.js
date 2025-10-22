@@ -1325,22 +1325,34 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
         // Set Self
         const self = this;
 
-        // Check if records are provided
-        if(records !== null && Object.entries(records).length > 0){
-
-            // Loop through the records
+        // Create a loader function
+        const loader = function(records){
             for(const [key, record] of Object.entries(records)){
-                this.add(record);
-            }
-            return this;
-        }
-
-        // Retrieve Followups
-        API.endpoint('/tasks/fetchAll').data({conditions: this._properties.conditions}).execute(function(response){
-            for(const [key, record] of Object.entries(response.records)){
                 self.add(record);
             }
-        });
+            self.datatable().rows().every(function(rowIdx, tableLoop, rowLoop){
+                if(typeof records[this.data()['id']] === 'undefined'){
+                    self.datatable().row(rowIdx).remove();
+                }
+            });
+            return self;
+        };
+
+        // Check if records are provided
+        if(records !== null && Object.entries(records).length > 0){
+            return loader(records);
+        }
+
+        // Retrieve Records
+        if(Array.isArray(this._properties.conditions)){
+            API.endpoint('/tasks/fetchAll').data({conditions: self._properties.conditions}).execute(function(response){
+                return loader(response.records);
+            });
+        } else {
+            API.endpoint('/tasks/fetchAll').execute(function(response){
+                return loader(response.records);
+            });
+        }
 
         return this;
     }
