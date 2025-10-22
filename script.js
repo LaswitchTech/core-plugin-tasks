@@ -40,7 +40,7 @@ if(typeof dashboard !== "undefined"){
                     break;
             }
             if(this._options.owner && this._options.owner !== 'all'){
-                conditions.push({key: 'assignedTo', operator: '=', value: this._options.owner});
+                conditions.push({key: 'assignedTo', operator: '=', value: USER_ID});
             }
             if(this._options.category && this._options.category !== 'all'){
                 conditions.push({key: 'category', operator: '=', value: this._options.category});
@@ -326,7 +326,7 @@ if(typeof dashboard !== "undefined"){
                     break;
             }
             if(this._options.owner && this._options.owner !== 'all'){
-                conditions.push({key: 'assignedTo', operator: '=', value: this._options.owner});
+                conditions.push({key: 'assignedTo', operator: '=', value: USER_ID});
             }
             if(this._options.category && this._options.category !== 'all'){
                 conditions.push({key: 'category', operator: '=', value: this._options.category});
