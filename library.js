@@ -1083,7 +1083,7 @@ builder.add('widgets','task', class extends builder.ComponentClass {
                                                     class: {
                                                         component: 'bg-gray-200 p-3 py-2 rounded-0',
                                                     },
-                                                    value: response.record.due.split(' ')[1] || '',
+                                                    value: (response.record.due || '').split(' ')[1],
                                                 }
                                             );
 
