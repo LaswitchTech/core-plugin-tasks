@@ -133,7 +133,7 @@
                         },
                     },
                 ],
-                order: [[15, 'asc']],
+                order: [[16, 'asc']],
                 columns: tasksDefinition,
             });
         });
