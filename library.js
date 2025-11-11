@@ -43,6 +43,16 @@ const tasksDefinition = [
     {
         targets: 4,
         visible: false,
+        title: builder.Locale.get('Contact'),
+        className: 'min-md',
+        name: 'name',
+        data: 'target.vcard.name',
+        defaultContent: '',
+        responsivePriority: 115,
+    },
+    {
+        targets: 5,
+        visible: false,
         title: builder.Locale.get('Address'),
         className: 'min-md',
         name: 'address',
@@ -51,7 +61,7 @@ const tasksDefinition = [
         responsivePriority: 120,
     },
     {
-        targets: 5,
+        targets: 6,
         visible: false,
         title: builder.Locale.get('City'),
         className: 'min-md',
@@ -61,7 +71,7 @@ const tasksDefinition = [
         responsivePriority: 130,
     },
     {
-        targets: 6,
+        targets: 7,
         visible: false,
         title: builder.Locale.get('State'),
         className: 'min-md',
@@ -71,7 +81,7 @@ const tasksDefinition = [
         responsivePriority: 140,
     },
     {
-        targets: 7,
+        targets: 8,
         visible: false,
         title: builder.Locale.get('Country'),
         className: 'min-md',
@@ -81,7 +91,7 @@ const tasksDefinition = [
         responsivePriority: 150,
     },
     {
-        targets: 8,
+        targets: 9,
         visible: false,
         title: builder.Locale.get('Phone'),
         className: 'min-md',
@@ -91,7 +101,7 @@ const tasksDefinition = [
         responsivePriority: 160,
     },
     {
-        targets: 9,
+        targets: 10,
         visible: false,
         title: builder.Locale.get('Mobile'),
         className: 'min-md',
@@ -101,7 +111,7 @@ const tasksDefinition = [
         responsivePriority: 170,
     },
     {
-        targets: 10,
+        targets: 11,
         visible: false,
         title: builder.Locale.get('Tollfree'),
         className: 'min-md',
@@ -111,7 +121,7 @@ const tasksDefinition = [
         responsivePriority: 180,
     },
     {
-        targets: 11,
+        targets: 12,
         visible: false,
         title: builder.Locale.get('Status'),
         className: 'min-md',
@@ -124,7 +134,7 @@ const tasksDefinition = [
         },
     },
     {
-        targets: 12,
+        targets: 13,
         visible: true,
         title: builder.Locale.get('Task'),
         className: 'min-md',
@@ -137,7 +147,7 @@ const tasksDefinition = [
         },
     },
     {
-        targets: 13,
+        targets: 14,
         visible: true,
         title: builder.Locale.get('Priority'),
         className: 'min-md',
@@ -150,7 +160,7 @@ const tasksDefinition = [
         },
     },
     {
-        targets: 14,
+        targets: 15,
         visible: true,
         title: builder.Locale.get('Assigned To'),
         className: 'min-md',
@@ -163,7 +173,7 @@ const tasksDefinition = [
         },
     },
     {
-        targets: 15,
+        targets: 16,
         visible: true,
         title: builder.Locale.get('Due'),
         className: 'min-md',
