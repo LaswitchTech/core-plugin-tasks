@@ -1308,7 +1308,7 @@ builder.add('widgets','tasks', class extends builder.ComponentClass {
         }
 
         // Set Column Order
-        this._properties.datatable.order = [[7, 'asc']];
+        this._properties.datatable.order = [[8, 'asc']];
 
         // Setup Placeholder
         this._properties.datatable.initComplete = function(param) {
