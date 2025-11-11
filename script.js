@@ -475,7 +475,7 @@ if(typeof dashboard !== "undefined"){
                                 },
                                 buttons: [],
                                 columnDefs: columnDefs,
-                                order: [[15, 'asc']],
+                                order: [[16, 'asc']],
                                 initComplete: function(param) {
                                     $(param.nTableWrapper).find('.dataTables_filter input').attr({
                                         'placeholder': builder.Locale.get('Search...'),
